@@ -15,7 +15,8 @@ public class RPGGame extends ApplicationAdapter {
     @Override
     public void create() {
         batch = new SpriteBatch();
-        image = new Texture("libgdx.png");
+        image = new Texture(Gdx.files.internal("core/assets/libgdx.png"));
+        System.out.println("Game started!");
     }
 
     @Override

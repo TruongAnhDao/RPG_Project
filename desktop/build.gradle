@@ -1,0 +1,17 @@
+apply plugin: "java-library"
+apply plugin: "application"
+
+dependencies {
+    implementation project(":core")
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+}
+
+application {
+    mainClass = "com.mygdx.game.desktop.DesktopLauncher"
+    sourceSets.main.resources.srcDirs = ["assets"]
+}
+
+run {
+    workingDir = file("assets")
+}
