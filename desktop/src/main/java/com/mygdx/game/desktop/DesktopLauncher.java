@@ -1,8 +1,11 @@
 package com.mygdx.game.desktop;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.mygdx.rpg.RPGGame;
+import com.mygdx.rpg.*;
 
 public class DesktopLauncher {
     public static void main(String[] arg) {
