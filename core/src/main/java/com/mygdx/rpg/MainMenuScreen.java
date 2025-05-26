@@ -71,11 +71,9 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 Gdx.app.log("MainMenuScreen", "Start Game button clicked");
-                // Khi có GamePlayScreen, bạn sẽ chuyển màn hình ở đây:
-                // game.setScreen(new GamePlayScreen(game));
-                // Tạm thời có thể dispose màn hình này để thấy game thoát (nếu không có màn hình nào khác)
-                // dispose();
-                // Gdx.app.exit(); // Hoặc thoát game
+                // Chuyển sang GamePlayScreen
+                game.setScreen(new GamePlayScreen(game)); // Tạo và đặt màn hình mới
+                dispose(); // Giải phóng tài nguyên của MainMenuScreen sau khi chuyển
             }
         });
 
