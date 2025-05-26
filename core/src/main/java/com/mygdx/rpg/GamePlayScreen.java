@@ -118,7 +118,7 @@ public class GamePlayScreen implements Screen {
 
         // Tạm thời mô phỏng việc máu thay đổi để test HUD
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            player.takeDamage(10); // Giả sử có phương thức takeDamage
+            player.takeDamage(10); // takeDamage
             if (player.getCurrentHealth() < 0) player.setCurrentHealth(100); // Reset máu ví dụ
         }
 
@@ -146,10 +146,12 @@ public class GamePlayScreen implements Screen {
         }
 
         // Vẽ nhân vật (ví dụ đơn giản)
+        float Width = 100;
+        float Height = 100;
         if (playerTexture != null) {
             // Bạn sẽ cần có vị trí x, y cho player
             // ví dụ player.getX(), player.getY()
-            game.batch.draw(playerTexture, Gdx.graphics.getWidth() / 2f - playerTexture.getWidth() / 2f, Gdx.graphics.getHeight() / 2f - playerTexture.getHeight() / 2f);
+            game.batch.draw(playerTexture, Gdx.graphics.getWidth() / 2f - Width / 2f, Gdx.graphics.getHeight() / 2f - Height / 2f, Width, Height);
         }
         game.batch.end();
 
