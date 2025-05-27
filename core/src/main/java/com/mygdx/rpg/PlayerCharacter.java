@@ -74,6 +74,27 @@ public class PlayerCharacter extends Character {
         return false; // Vật phẩm không có trong hành trang hoặc không được tiêu thụ
     }
 
+    public boolean dropItem(Item itemToDrop) {
+        if (itemToDrop == null || !inventory.contains(itemToDrop)) {
+            Gdx.app.log("PlayerCharacter", "Attempted to drop null or non-existent item.");
+            return false;
+        }
+
+        // Sử dụng Iterator để xóa an toàn
+        Iterator<Item> iter = inventory.iterator();
+        while (iter.hasNext()) {
+            Item currentItem = iter.next();
+            if (currentItem == itemToDrop) { // So sánh đối tượng trực tiếp
+                iter.remove();
+                Gdx.app.log("PlayerCharacter", "Dropped item: " + itemToDrop.getName());
+                // TODO (Tùy chọn): Tạo một đối tượng ItemEntity trong thế giới game tại vị trí người chơi
+                return true;
+            }
+        }
+        // Dòng này không nên đạt được nếu itemToDrop có trong inventory.contains(itemToDrop) là true
+        return false;
+    }
+
     public List<Item> getInventory() {
         return inventory;
     }

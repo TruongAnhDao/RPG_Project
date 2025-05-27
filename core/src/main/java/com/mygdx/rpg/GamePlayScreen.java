@@ -50,6 +50,8 @@ public class GamePlayScreen implements Screen {
     private ScrollPane inventoryScrollPane; // Để cuộn item nếu nhiều
     private boolean inventoryVisible = false; // Trạng thái hiển thị hành trang
     private Label itemDescriptionLabel; // Label để hiển thị mô tả vật phẩm
+    private TextButton dropItemButton; // Nút để vứt bỏ vật phẩm
+    private Item currentSelectedItem = null; // Để lưu trữ vật phẩm đang được chọn
 
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
@@ -154,6 +156,38 @@ public class GamePlayScreen implements Screen {
         inventoryWindow.add(inventoryScrollPane).expandX().fillX().height(200).pad(5).row(); // Giới hạn chiều cao ScrollPane
         inventoryWindow.add(itemDescriptionLabel).expandX().fillX().height(150).pad(5).top().row(); // Thêm Label mô tả bên dưới
 
+        // --- Khởi tạo và thêm nút Drop ---
+        dropItemButton = new TextButton("Drop", skin, "default");
+        dropItemButton.setVisible(false); // Ban đầu ẩn nút Drop
+
+        dropItemButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (currentSelectedItem != null) {
+                    Gdx.app.log("InventoryAction", "Attempting to drop: " + currentSelectedItem.getName());
+                    if (player.dropItem(currentSelectedItem)) {
+                        Gdx.app.log("InventoryAction", currentSelectedItem.getName() + " dropped successfully.");
+                        populateInventoryTable(); // Cập nhật lại danh sách hành trang
+                        // Sau khi drop, không còn item nào được chọn nữa
+                        hideItemDescription(); // Ẩn mô tả và nút Drop
+                        currentSelectedItem = null;
+                    } else {
+                        // Trường hợp này ít khi xảy ra nếu currentSelectedItem được quản lý đúng
+                        Gdx.app.log("InventoryAction", "Failed to drop " + currentSelectedItem.getName());
+                    }
+                }
+            }
+        });
+
+        // Thêm một hàng mới cho nút Drop (hoặc đặt nó ở vị trí khác tùy ý)
+        // Ví dụ: đặt nó dưới phần mô tả
+        Table actionButtonsTable = new Table(); // Tạo một bảng nhỏ để chứa các nút hành động nếu cần
+        // actionButtonsTable.add(useItemButton).pad(5); // Nếu bạn có nút "Use" riêng
+        actionButtonsTable.add(dropItemButton).pad(5);
+
+        inventoryWindow.row(); // Xuống hàng mới sau ScrollPane và DescriptionLabel
+        inventoryWindow.add(actionButtonsTable).pad(5); // Thêm bảng chứa nút Drop
+
         // Thêm inventoryWindow vào hudStage để nó được vẽ và nhận input (khi visible)
         // Chúng ta thêm nó vào hudStage để nó được vẽ trên cùng các element khác của HUD
         hudStage.addActor(inventoryWindow);
@@ -185,20 +219,21 @@ public class GamePlayScreen implements Screen {
                             // Thêm một nút "Use" hoặc xử lý trực tiếp
                             // Ví dụ xử lý trực tiếp:
                             if (player.useItem(clickedItem)) {
-                                // Nếu sử dụng thành công (và vật phẩm bị tiêu thụ)
                                 Gdx.app.log("InventoryAction", clickedItem.getName() + " used successfully.");
-                                populateInventoryTable(); // Cập nhật lại danh sách hành trang
-                                // Cập nhật lại mô tả (có thể item đã biến mất)
-                                // Hoặc chỉ cần xóa mô tả nếu không còn item nào được chọn
-                                // Nếu muốn giữ mô tả của item vừa dùng (giờ đã biến mất):
-                                itemDescriptionLabel.setText(clickedItem.getName() + " was used.");
-                                // Hoặc để rõ ràng hơn:
-                                // hideItemDescription(); // Hoặc hiển thị mô tả của item tiếp theo nếu có
+                                populateInventoryTable();
+                                // Sau khi dùng, item đã biến mất, nên không còn "selected" để drop nữa
+                                // Có thể cập nhật mô tả hoặc ẩn đi
+                                if (player.getInventory().contains(clickedItem)) { // Kiểm tra xem item còn không (ví dụ item không bị consume 100%)
+                                    showItemDescription(clickedItem); // Nếu vẫn còn thì hiển thị lại
+                                } else {
+                                    hideItemDescription(); // Nếu item đã bị consume hoàn toàn
+                                    currentSelectedItem = null; // Đảm bảo không còn item nào được chọn
+                                }
+
                             } else {
-                                // Sử dụng không thành công (ví dụ: máu đầy)
                                 Gdx.app.log("InventoryAction", "Could not use " + clickedItem.getName());
-                                // Có thể hiển thị thông báo cho người chơi trên itemDescriptionLabel
                                 itemDescriptionLabel.setText("Could not use " + clickedItem.getName() + ".");
+                                // Nút Drop vẫn sẽ hiển thị dựa trên item được click ban đầu
                             }
                         }
                         // Nếu không phải Consumable, chỉ hiển thị mô tả như trước
@@ -234,17 +269,22 @@ public class GamePlayScreen implements Screen {
     }
 
     private void showItemDescription(Item item) {
-    if (item != null && item.getEffect() != null) {
-        itemDescriptionLabel.setText(item.getEffect());
-    } else {
-        itemDescriptionLabel.setText("No description available.");
+        currentSelectedItem = item; // Lưu vật phẩm đang được chọn
+        if (item != null && item.getEffect() != null) {
+            itemDescriptionLabel.setText(item.getEffect());
+            dropItemButton.setVisible(true); // Hiển thị nút Drop
+        } else {
+            itemDescriptionLabel.setText("No description available.");
+            dropItemButton.setVisible(false); // Ẩn nút Drop nếu không có item hoặc mô tả
+            currentSelectedItem = null;
+        }
     }
-    // Có thể thêm logic để làm nổi bật item được chọn trong danh sách nếu muốn
-}
 
     private void hideItemDescription() {
-        itemDescriptionLabel.setText("Select an item to see its description."); // Reset về mặc định
-    }
+        itemDescriptionLabel.setText("Select an item to see its description.");
+        dropItemButton.setVisible(false); // Luôn ẩn nút Drop khi không có mô tả/item nào được chọn
+        currentSelectedItem = null; // Không còn item nào được chọn
+}
 
     @Override
     public void show() {
