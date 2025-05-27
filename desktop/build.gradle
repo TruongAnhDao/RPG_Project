@@ -9,6 +9,7 @@ dependencies {
 
 application {
     mainClass = "com.mygdx.game.desktop.DesktopLauncher"
+    sourceSets.main.resources.srcDirs = ["../core/assets"]
 }
 
 run {
