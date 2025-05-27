@@ -1,12 +1,12 @@
-package com.mygdx.rpg;
+package com.mygdx.rpg; // Hoặc package của bạn
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -16,64 +16,86 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class MainMenuScreen implements Screen {
 
-    private final RPGGame game; // Tham chiếu đến lớp Game chính để có thể chuyển màn hình
+    private final RPGGame game; 
     private Stage stage;
     private Viewport viewport;
-    private Skin skin; // Skin để tạo kiểu cho UI elements
-    private OrthographicCamera camera; // Không bắt buộc cho UI đơn giản với ScreenViewport, nhưng hữu ích
+    private Skin skin;
+    private Texture backgroundTexture;
+    private Image backgroundImage;
 
     public MainMenuScreen(final RPGGame game) {
         this.game = game;
-        // camera = new OrthographicCamera(); // Nếu dùng FitViewport hoặc ExtendViewport thì cần camera
-        // viewport = new FitViewport(800, 480, camera); // Ví dụ với FitViewport
-        viewport = new ScreenViewport(); // Đơn giản hơn cho UI co giãn theo màn hình
-        stage = new Stage(viewport, game.batch); // Truyền SpriteBatch từ RPGGame vào
+        viewport = new ScreenViewport();
+        stage = new Stage(viewport, game.batch);
 
-        // Tải skin
-        // Giả sử các file skin nằm trực tiếp trong 'assets'
+        // Load background texture
         try {
-            skin = new Skin(Gdx.files.internal("core/assets/uiskin.json"));
+            backgroundTexture = new Texture(Gdx.files.internal("mainmenuscreen.png"));
+            backgroundImage = new Image(backgroundTexture);
+            backgroundImage.setPosition(0, 0);
+            stage.addActor(backgroundImage); 
         } catch (Exception e) {
-            Gdx.app.error("MainMenuScreen", "Error loading skin", e);
-            // Tạo một skin rỗng để tránh NullPointerException nếu tải thất bại
-            // Hoặc bạn có thể tạo một skin cơ bản bằng code ở đây làm fallback
-            skin = new Skin();
+            Gdx.app.error("MainMenuScreen", "Error loading background image", e);
         }
 
+        // Load UI skin
+        try {
+            skin = new Skin(Gdx.files.internal("uiskin.json"));
+        } catch (Exception e) {
+            Gdx.app.error("MainMenuScreen", "Error loading skin", e);
+            skin = new Skin(); 
+        }
 
-        Gdx.input.setInputProcessor(stage); // Rất quan trọng để Stage nhận input
+        Gdx.input.setInputProcessor(stage);
 
-        // Tạo Table để sắp xếp các elements
-        Table table = new Table();
-        table.setFillParent(true); // Table chiếm toàn bộ Stage
-        // table.setDebug(true); // Bật debug để xem đường viền của table và cells
+        // --- THIẾT LẬP UI MỚI ---
 
-        stage.addActor(table);
+        // Bảng chính, chiếm toàn bộ màn hình
+        Table mainTable = new Table();
+        mainTable.setFillParent(true);
+        // mainTable.setDebug(true); // Bật để xem đường viền của mainTable và các cell
+        stage.addActor(mainTable);
 
-        // Tạo các UI elements
-        Label titleLabel = new Label("MY RPG ADVENTURE", skin, "default"); // Sử dụng style "default" từ uiskin.json
-                                                                        // Nếu skin của bạn có style tên khác, ví dụ "title-font", thì dùng tên đó
-        TextButton startButton = new TextButton("Start Game", skin, "default");
-        TextButton optionsButton = new TextButton("Options", skin, "default");
-        TextButton exitButton = new TextButton("Exit Game", skin, "default");
+        // Tạo các nút bấm
+        TextButton startButton = new TextButton("Start Game", skin); 
+        TextButton optionsButton = new TextButton("Options", skin);
+        TextButton exitButton = new TextButton("Exit Game", skin);
 
-        // Thêm elements vào Table
-        table.add(titleLabel).padBottom(50).colspan(1).center(); // colspan nếu có nhiều cột
-        table.row(); // Xuống hàng mới
-        table.add(startButton).width(300).height(50).padBottom(20);
-        table.row();
-        table.add(optionsButton).width(300).height(50).padBottom(20);
-        table.row();
-        table.add(exitButton).width(300).height(50);
+        // 1. Tạo bảng con cho các nút Options và Exit ở góc trên phải
+        Table topRightButtonsTable = new Table();
+        // topRightButtonsTable.setDebug(true); // Bật để xem đường viền của bảng con này
 
-        // Thêm listeners cho các button
+        float smallButtonWidth = 220f; // Đủ rộng cho chữ "Options"
+        float smallButtonHeight = 80f;  // Chiều cao vừa phải
+        float paddingBetweenSmallButtons = 20f;
+
+        topRightButtonsTable.add(optionsButton).width(smallButtonWidth).height(smallButtonHeight).padRight(paddingBetweenSmallButtons);
+        topRightButtonsTable.add(exitButton).width(smallButtonWidth).height(smallButtonHeight);
+
+        // 2. Bố cục trong mainTable
+        // Dòng 1: Một cell trống co giãn để đẩy topRightButtonsTable sang phải, và topRightButtonsTable
+        mainTable.add().expandX(); // Cell trống co giãn theo chiều ngang
+        mainTable.add(topRightButtonsTable).top().right().padTop(30f).padRight(30f); // Đặt bảng con vào góc trên phải của mainTable
+        mainTable.row(); // Xuống hàng mới
+
+        // Dòng 2: Nút Start Game, chiếm trọn bề ngang của hàng mới, co giãn theo chiều dọc và căn giữa
+        float startButtonWidth = 700f;  // Kích thước nút Start như cũ hoặc tùy chỉnh
+        float startButtonHeight = 180f;
+        mainTable.add(startButton).width(startButtonWidth).height(startButtonHeight).colspan(2).expandY().center();
+        // colspan(2) để nút Start chiếm cả 2 cột đã được định nghĩa ở dòng trên (cell trống và cell chứa topRightButtonsTable)
+        // expandY() để cell này chiếm hết không gian dọc còn lại
+        // center() để nút Start nằm giữa cell đó
+        
+        mainTable.row(); // Xuống hàng mới (nếu có thêm nội dung bên dưới Start Game)
+        // mainTable.add().expandY(); // Thêm cell trống co giãn ở dưới nếu muốn đẩy Start Game lên trên một chút nữa
+
+        // Button listeners
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 Gdx.app.log("MainMenuScreen", "Start Game button clicked");
-                // Chuyển sang GamePlayScreen
-                game.setScreen(new GamePlayScreen(game)); // Tạo và đặt màn hình mới
-                dispose(); // Giải phóng tài nguyên của MainMenuScreen sau khi chuyển
+                game.setScreen(new GamePlayScreen(game)); 
+                dispose();
             }
         });
 
@@ -81,7 +103,7 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 Gdx.app.log("MainMenuScreen", "Options button clicked");
-                // TODO: Chuyển sang màn hình Options
+                // TODO: Implement Options Screen
             }
         });
 
@@ -89,54 +111,48 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 Gdx.app.log("MainMenuScreen", "Exit Game button clicked");
-                Gdx.app.exit(); // Thoát game
+                Gdx.app.exit();
             }
         });
     }
 
     @Override
     public void show() {
-        // Được gọi khi màn hình này được hiển thị
-        Gdx.input.setInputProcessor(stage); // Đảm bảo stage nhận input
+        Gdx.input.setInputProcessor(stage);
     }
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 1); // Màu nền xám
+        Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 1); 
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f)); // Cập nhật Stage
-        stage.draw(); // Vẽ Stage
+        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
+        stage.draw();
     }
 
     @Override
     public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true); // Cập nhật viewport khi cửa sổ thay đổi kích thước
+        stage.getViewport().update(width, height, true); 
+        if (backgroundImage != null) {
+            backgroundImage.setSize(width, height); 
+            backgroundImage.setPosition(0,0); 
+        }
     }
 
     @Override
-    public void pause() {
-        // Được gọi khi game bị tạm dừng (ví dụ: cuộc gọi đến trên Android)
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-        // Được gọi khi game tiếp tục sau khi bị tạm dừng
-    }
+    public void resume() {}
 
     @Override
-    public void hide() {
-        // Được gọi khi màn hình này không còn là màn hình hiện tại nữa
-        // Bạn có thể không cần dispose ở đây nếu muốn quay lại màn hình này sau
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {
-        // Giải phóng tài nguyên khi màn hình này không còn dùng nữa
         Gdx.app.log("MainMenuScreen", "Disposing MainMenuScreen");
-        stage.dispose();
-        if (skin != null) { // Kiểm tra skin có null không trước khi dispose
-             skin.dispose();
-        }
+        if (stage != null) stage.dispose();
+        if (skin != null) skin.dispose(); 
+        if (backgroundTexture != null) backgroundTexture.dispose();
     }
 }
