@@ -59,11 +59,7 @@ public class MainMenuScreen implements Screen {
             Gdx.app.error("MainMenuScreen", "Error loading setting_icon.png", e);
         }
         try {
-<<<<<<< Updated upstream
             exitIconTexture = new Texture(Gdx.files.internal("MainMenuScreen/exit_game.png")); 
-=======
-            exitIconTexture = new Texture(Gdx.files.internal("MainMenuScreen/exit_game.png")); // Tải icon exit
->>>>>>> Stashed changes
         } catch (Exception e) {
             Gdx.app.error("MainMenuScreen", "Error loading exit_game.png", e);
         }
