@@ -9,7 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton; // TextButton vẫn dùng cho Start Game
+// TextButton không còn cần thiết nếu Start Game cũng là ImageButton
+// import com.badlogic.gdx.scenes.scene2d.ui.TextButton; 
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton; 
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable; 
@@ -25,7 +26,8 @@ public class MainMenuScreen implements Screen {
     private Texture backgroundTexture;
     private Image backgroundImage;
     private Texture settingsIconTexture; 
-    private Texture exitIconTexture; // Khai báo Texture cho icon exit
+    private Texture exitIconTexture;
+    private Texture startIconTexture; // Khai báo Texture cho icon Start Game
 
     public MainMenuScreen(final RPGGame game) {
         this.game = game;
@@ -34,7 +36,7 @@ public class MainMenuScreen implements Screen {
 
         // Load background texture
         try {
-            backgroundTexture = new Texture(Gdx.files.internal("mainmenuscreen.png"));
+            backgroundTexture = new Texture(Gdx.files.internal("MainMenuScreen/mainmenuscreen.png"));
             backgroundImage = new Image(backgroundTexture);
             backgroundImage.setPosition(0, 0);
             stage.addActor(backgroundImage);
@@ -44,7 +46,7 @@ public class MainMenuScreen implements Screen {
 
         // Load UI skin
         try {
-            skin = new Skin(Gdx.files.internal("uiskin.json"));
+            skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
         } catch (Exception e) {
             Gdx.app.error("MainMenuScreen", "Error loading skin", e);
             skin = new Skin();
@@ -52,15 +54,21 @@ public class MainMenuScreen implements Screen {
 
         // Load icons textures
         try {
-            settingsIconTexture = new Texture(Gdx.files.internal("setting_icon.png"));
+            settingsIconTexture = new Texture(Gdx.files.internal("MainMenuScreen/setting_icon.png"));
         } catch (Exception e) {
             Gdx.app.error("MainMenuScreen", "Error loading setting_icon.png", e);
         }
         try {
-            exitIconTexture = new Texture(Gdx.files.internal("exit_game.png")); // Tải icon exit
+            exitIconTexture = new Texture(Gdx.files.internal("MainMenuScreen/exit_game.png")); 
         } catch (Exception e) {
             Gdx.app.error("MainMenuScreen", "Error loading exit_game.png", e);
         }
+        try {
+            startIconTexture = new Texture(Gdx.files.internal("MainMenuScreen/play_button.png")); // Tải icon Start Game
+        } catch (Exception e) {
+            Gdx.app.error("MainMenuScreen", "Error loading play_button.png", e);
+        }
+
 
         Gdx.input.setInputProcessor(stage);
 
@@ -71,9 +79,28 @@ public class MainMenuScreen implements Screen {
         // mainTable.setDebug(true);
         stage.addActor(mainTable);
 
-        TextButton startButton = new TextButton("Start Game", skin); // Nút Start vẫn là TextButton
+        ImageButton startImageButton = null; // Nút Start giờ là ImageButton
         ImageButton optionsButton = null;
-        ImageButton exitImageButton = null; // Đổi tên biến để rõ ràng hơn
+        ImageButton exitImageButton = null;
+
+        // Tạo ImageButton cho Start Game
+        if (startIconTexture != null) {
+            ImageButton.ImageButtonStyle startStyle = new ImageButton.ImageButtonStyle();
+            startStyle.imageUp = new TextureRegionDrawable(startIconTexture);
+            startImageButton = new ImageButton(startStyle);
+            startImageButton.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    Gdx.app.log("MainMenuScreen", "Start Game ImageButton clicked");
+                    game.setScreen(new GamePlayScreen(game)); 
+                    dispose();
+                }
+            });
+        } else {
+            Gdx.app.log("MainMenuScreen", "Start icon texture not loaded, Start button not created as ImageButton.");
+            // Fallback: có thể tạo TextButton nếu không có ảnh
+        }
+
 
         // Tạo ImageButton cho Options
         if (settingsIconTexture != null) {
@@ -100,12 +127,11 @@ public class MainMenuScreen implements Screen {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
                     Gdx.app.log("MainMenuScreen", "Exit ImageButton clicked");
-                    Gdx.app.exit(); // Hành động thoát game
+                    Gdx.app.exit(); 
                 }
             });
         } else {
             Gdx.app.log("MainMenuScreen", "Exit icon texture not loaded, Exit button not created as ImageButton.");
-            // Fallback: Nếu muốn, có thể tạo lại TextButton "Exit Game" ở đây
         }
 
 
@@ -113,22 +139,18 @@ public class MainMenuScreen implements Screen {
         Table topRightButtonsTable = new Table();
         // topRightButtonsTable.setDebug(true);
 
-        float iconButtonSize = 80f; // Kích thước chung cho các nút icon (hình vuông)
+        float iconButtonSize = 80f; 
         float paddingBetweenSmallButtons = 20f;
 
         if (optionsButton != null) {
             topRightButtonsTable.add(optionsButton).size(iconButtonSize).padRight(paddingBetweenSmallButtons);
         }
-        if (exitImageButton != null) { // Thêm exitImageButton vào table
+        if (exitImageButton != null) { 
             topRightButtonsTable.add(exitImageButton).size(iconButtonSize);
-        } else {
-            // Nếu exitImageButton không tạo được, có thể thêm một TextButton fallback vào đây
-            // TextButton exitTextFallback = new TextButton("Exit", skin);
-            // topRightButtonsTable.add(exitTextFallback).width(200f).height(80f);
         }
 
 
-        // 2. Kích thước nút Start Game
+        // 2. Kích thước nút Start Game (ImageButton)
         float startButtonWidth = 700f;
         float startButtonHeight = 180f;
 
@@ -143,23 +165,18 @@ public class MainMenuScreen implements Screen {
         float screenHeight = 1700f;
         float padding_start_button_from_bottom = screenHeight * 0.20f;
 
-        mainTable.add(startButton)
-                 .width(startButtonWidth)
-                 .height(startButtonHeight)
-                 .colspan(2)
-                 .bottom()
-                 .padBottom(padding_start_button_from_bottom);
+        if (startImageButton != null) { // Thêm startImageButton vào table
+            mainTable.add(startImageButton)
+                     .width(startButtonWidth)
+                     .height(startButtonHeight)
+                     .colspan(2)
+                     .bottom()
+                     .padBottom(padding_start_button_from_bottom);
+        } else {
+            // Nếu startImageButton không được tạo, có thể thêm một thông báo hoặc để trống
+            mainTable.add().colspan(2).height(startButtonHeight); // Giữ chỗ trống
+        }
 
-        // Listener cho startButton
-        startButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                Gdx.app.log("MainMenuScreen", "Start Game button clicked");
-                game.setScreen(new GamePlayScreen(game)); 
-                dispose();
-            }
-        });
-        // Listener cho exitButton đã được gán khi tạo ImageButton
     }
 
     @Override
@@ -203,6 +220,7 @@ public class MainMenuScreen implements Screen {
         if (skin != null) skin.dispose();
         if (backgroundTexture != null) backgroundTexture.dispose();
         if (settingsIconTexture != null) settingsIconTexture.dispose();
-        if (exitIconTexture != null) exitIconTexture.dispose(); // Giải phóng texture của icon exit
+        if (exitIconTexture != null) exitIconTexture.dispose();
+        if (startIconTexture != null) startIconTexture.dispose(); // Giải phóng texture của icon Start
     }
 }
