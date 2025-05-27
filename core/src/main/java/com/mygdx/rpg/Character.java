@@ -42,16 +42,12 @@ public class Character {
 
     public void takeDamage(int damage) {
         hp -= damage;
-        if (hp < 0) hp = 0;
+        //if (hp < 0) hp = 0;
         System.out.println(name + " takes " + damage + " damage. Remaining HP: " + hp);
     }
 
     public void setCurrentHealth(int health) { // Cần thiết nếu muốn reset máu
         this.hp = Math.max(0, Math.min(health, maxhp));
-    }
-
-    public void useItem(Item item) {
-        item.use(this);
     }
 
     public void levelUp() {

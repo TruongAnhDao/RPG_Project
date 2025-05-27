@@ -174,11 +174,34 @@ public class GamePlayScreen implements Screen {
                 itemButton.addListener(new ClickListener() {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {
-                        // Lấy lại đối tượng Item từ UserObject
                         Item clickedItem = (Item) ((TextButton)event.getListenerActor()).getUserObject();
                         Gdx.app.log("InventoryClick", "Clicked on: " + clickedItem.getName());
-                        // TODO: Hiển thị mô tả hoặc thực hiện hành động với clickedItem
-                        showItemDescription(clickedItem); // Gọi hàm mới để hiển thị mô tả
+
+                        // Hiển thị mô tả trước
+                        showItemDescription(clickedItem);
+
+                        // Nếu là vật phẩm có thể sử dụng ngay khi click (ví dụ: Consumable)
+                        if ("Consumable".equalsIgnoreCase(clickedItem.getType())) {
+                            // Thêm một nút "Use" hoặc xử lý trực tiếp
+                            // Ví dụ xử lý trực tiếp:
+                            if (player.useItem(clickedItem)) {
+                                // Nếu sử dụng thành công (và vật phẩm bị tiêu thụ)
+                                Gdx.app.log("InventoryAction", clickedItem.getName() + " used successfully.");
+                                populateInventoryTable(); // Cập nhật lại danh sách hành trang
+                                // Cập nhật lại mô tả (có thể item đã biến mất)
+                                // Hoặc chỉ cần xóa mô tả nếu không còn item nào được chọn
+                                // Nếu muốn giữ mô tả của item vừa dùng (giờ đã biến mất):
+                                itemDescriptionLabel.setText(clickedItem.getName() + " was used.");
+                                // Hoặc để rõ ràng hơn:
+                                // hideItemDescription(); // Hoặc hiển thị mô tả của item tiếp theo nếu có
+                            } else {
+                                // Sử dụng không thành công (ví dụ: máu đầy)
+                                Gdx.app.log("InventoryAction", "Could not use " + clickedItem.getName());
+                                // Có thể hiển thị thông báo cho người chơi trên itemDescriptionLabel
+                                itemDescriptionLabel.setText("Could not use " + clickedItem.getName() + ".");
+                            }
+                        }
+                        // Nếu không phải Consumable, chỉ hiển thị mô tả như trước
                     }
                 });
 
@@ -249,7 +272,7 @@ public class GamePlayScreen implements Screen {
         }
 
         // Cập nhật text của healthLabel
-        healthLabel.setText("Health: " + player.getCurrentHealth());
+        healthLabel.setText("Health: " + player.getCurrentHealth()); // Dòng này sẽ tự động cập nhật máu sau khi dùng Potion
     }
 
     private void handleInput(float delta) {
