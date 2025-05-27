@@ -7,6 +7,7 @@ public class Item {
     private String name;
     private String type;     // e.g., "Potion", "Weapon", "Armor"
     private String effect;   // Mô tả hiệu ứng, ví dụ: "Heals 50 HP"
+    private int quantity;
 
     public Item(String name, String type, String effect) {
         this.name = name;

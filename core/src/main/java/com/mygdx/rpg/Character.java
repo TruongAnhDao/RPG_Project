@@ -12,10 +12,9 @@ public class Character {
     protected int speed;
     protected int maxhp;
 
-    public Character(String name, int level, int hp, int mp, int attack, int defense, int speed) {
+    public Character(String name, int level, int maxhp, int mp, int attack, int defense, int speed) {
         this.name = name;
         this.level = level;
-        this.maxhp = 100;
         this.hp = this.maxhp;
         this.mp = mp;
         this.attack = attack;
@@ -43,7 +42,7 @@ public class Character {
 
     public void takeDamage(int damage) {
         hp -= damage;
-        //if (hp < 0) hp = 0;
+        if (hp < 0) hp = 0;
         System.out.println(name + " takes " + damage + " damage. Remaining HP: " + hp);
     }
 

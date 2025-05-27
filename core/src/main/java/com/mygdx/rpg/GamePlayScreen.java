@@ -1,5 +1,6 @@
 package com.mygdx.rpg;
 
+import java.util.List;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter; 
 import com.badlogic.gdx.InputMultiplexer; 
@@ -8,12 +9,19 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.scenes.scene2d.ui.Window; // Cho cửa sổ inventory
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; // Để cuộn danh sách item
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton; // Có thể dùng để tương tác với item sau này
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; // Cho nút đóng
+import com.badlogic.gdx.scenes.scene2d.InputEvent;     // Cho ClickListener
 
 public class GamePlayScreen implements Screen {
 
@@ -36,6 +44,13 @@ public class GamePlayScreen implements Screen {
 
     private InputMultiplexer inputMultiplexer; // Để xử lý nhiều nguồn input
 
+    // --- TCác biến cho Inventory UI ---
+    private Window inventoryWindow; // Cửa sổ chính của hành trang
+    private Table inventoryItemTable; // Bảng để chứa danh sách item
+    private ScrollPane inventoryScrollPane; // Để cuộn item nếu nhiều
+    private boolean inventoryVisible = false; // Trạng thái hiển thị hành trang
+    private Label itemDescriptionLabel; // Label để hiển thị mô tả vật phẩm
+
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
 
@@ -57,7 +72,7 @@ public class GamePlayScreen implements Screen {
 
         // Tải skin (giống như MainMenuScreen)
         try {
-            skin = new Skin(Gdx.files.internal("core/assets/uiskin.json"));
+            skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
         } catch (Exception e) {
             Gdx.app.error("GamePlayScreen", "Error loading skin", e);
             skin = new Skin(); // Fallback
@@ -67,10 +82,17 @@ public class GamePlayScreen implements Screen {
         player = new PlayerCharacter("Hero"); // Tạo nhân vật
         // player.setHealth(100); // Nếu cần thiết lập máu ban đầu qua setter
 
+        // --- Thêm item mẫu vào hành trang của người chơi để test ---
+        player.addItem(new Item("Potion", "Consumable", "Heals 50 HP"));
+        player.addItem(new Item("Sword of Power", "Weapon", "A mighty fine sword."));
+        player.addItem(new Item("Old Key", "Key Item", "Opens an old door."));
+        player.addItem(new Item("Mana Potion", "Consumable", "Restores 30 MP"));
+        player.addItem(new Item("Shield", "Armor", "Provides good defense."));
+
         // --- Tải tài nguyên ví dụ ---
         try {
-            playerTexture = new Texture(Gdx.files.internal("core/assets/playertexture.png")); 
-            backgroundTexture = new Texture(Gdx.files.internal("core/assets/background.png")); 
+            playerTexture = new Texture(Gdx.files.internal("PlayScreen/playertexture.png")); 
+            backgroundTexture = new Texture(Gdx.files.internal("PlayScreen/background.png")); 
         } catch (Exception e) {
             Gdx.app.error("GamePlayScreen", "Could not load textures", e);
             // playerTexture và backgroundTexture sẽ là null, cần xử lý trong render
@@ -90,9 +112,8 @@ public class GamePlayScreen implements Screen {
 
         hudStage.addActor(hudTable);
 
-        // Khởi tạo các đối tượng game của bạn ở đây
-        // Ví dụ: player = new PlayerCharacter("Hero");
-        //         loadMap();
+        // --- Thiết lập Inventory UI ---
+        setupInventoryUI();
 
         // --- Thiết lập InputMultiplexer ---
         inputMultiplexer = new InputMultiplexer();
@@ -102,12 +123,117 @@ public class GamePlayScreen implements Screen {
         Gdx.app.log("GamePlayScreen", "GamePlayScreen created");
     }
 
+    private void setupInventoryUI() {
+        inventoryWindow = new Window("Inventory", skin); // Tiêu đề cửa sổ
+        inventoryWindow.setSize(400, 450); // Kích thước cửa sổ
+        inventoryWindow.setPosition(Gdx.graphics.getWidth() / 2f - 200, Gdx.graphics.getHeight() / 2f - 150); // Căn giữa
+        inventoryWindow.setMovable(true); // Cho phép di chuyển cửa sổ
+        inventoryWindow.setVisible(inventoryVisible); // Ban đầu ẩn
+
+        inventoryItemTable = new Table(skin); // Bảng chứa item
+        inventoryScrollPane = new ScrollPane(inventoryItemTable, skin); // Bọc bảng item bằng ScrollPane
+        inventoryScrollPane.setFadeScrollBars(false); // Giữ thanh cuộn luôn hiện (tùy chọn)
+        inventoryScrollPane.setScrollingDisabled(true, false); // Chỉ cho cuộn dọc
+
+        // Thêm nút đóng vào thanh tiêu đề của Window (hoặc bên trong)
+        TextButton closeButton = new TextButton("X", skin, "default"); // Dùng style "default" cho nút
+        closeButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                toggleInventory(); // Gọi hàm toggle để ẩn inventory
+                hideItemDescription(); // Ẩn mô tả khi đóng inventory
+            }
+        });
+        inventoryWindow.getTitleTable().add(closeButton).height(inventoryWindow.getPadTop()); // Thêm vào thanh tiêu đề
+
+        // --- Thêm Label cho mô tả ---
+        itemDescriptionLabel = new Label("Select an item to see its description.", skin);
+        itemDescriptionLabel.setWrap(true); // Cho phép xuống dòng nếu mô tả dài
+
+        // inventoryWindow.add(inventoryScrollPane).expand().fill().pad(5).colspan(1); // Dòng cũ
+        inventoryWindow.add(inventoryScrollPane).expandX().fillX().height(200).pad(5).row(); // Giới hạn chiều cao ScrollPane
+        inventoryWindow.add(itemDescriptionLabel).expandX().fillX().height(150).pad(5).top().row(); // Thêm Label mô tả bên dưới
+
+        // Thêm inventoryWindow vào hudStage để nó được vẽ và nhận input (khi visible)
+        // Chúng ta thêm nó vào hudStage để nó được vẽ trên cùng các element khác của HUD
+        hudStage.addActor(inventoryWindow);
+    }
+
+    private void populateInventoryTable() {
+        inventoryItemTable.clearChildren(); // Xóa các item cũ trước khi cập nhật
+        List<Item> items = player.getInventory();
+
+        if (items.isEmpty()) {
+            inventoryItemTable.add(new Label("Inventory is empty.", skin)).pad(10);
+        } else {
+            for (Item item : items) {
+                // Tạo TextButton 
+                TextButton itemButton = new TextButton(item.getName() + " (" + item.getType() + ")", skin, "default");;
+                itemButton.setUserObject(item); // **Gán đối tượng Item vào UserObject của Button**
+
+                itemButton.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        // Lấy lại đối tượng Item từ UserObject
+                        Item clickedItem = (Item) ((TextButton)event.getListenerActor()).getUserObject();
+                        Gdx.app.log("InventoryClick", "Clicked on: " + clickedItem.getName());
+                        // TODO: Hiển thị mô tả hoặc thực hiện hành động với clickedItem
+                        showItemDescription(clickedItem); // Gọi hàm mới để hiển thị mô tả
+                    }
+                });
+
+                inventoryItemTable.add(itemButton).left().fillX().pad(2).row(); // fillX để button chiếm hết chiều rộng ô
+            }
+        }
+    }
+
+    private void toggleInventory() {
+        inventoryVisible = !inventoryVisible;
+        inventoryWindow.setVisible(inventoryVisible);
+
+        if (inventoryVisible) {
+            populateInventoryTable(); // Cập nhật danh sách item khi mở
+            inputMultiplexer.removeProcessor(1); // Gỡ GameInputAdapter tạm thời
+            inputMultiplexer.addProcessor(0, hudStage); // Đảm bảo hudStage (chứa inventoryWindow) xử lý input trước tiên
+                                                         // hoặc chỉ cần addProcessor(inventoryWindow.getStage()) nếu inventoryWindow không thuộc hudStage
+            Gdx.input.setInputProcessor(inputMultiplexer); // Cập nhật lại input processor
+            // Có thể bạn muốn tạm dừng game ở đây
+            // Gdx.app.log("Inventory", "Inventory Opened");
+        } else {
+            hideItemDescription(); // Ẩn mô tả khi inventory đóng
+            // Khôi phục input processor như cũ
+            inputMultiplexer.removeProcessor(hudStage); // Gỡ hudStage (nếu đã thêm ở vị trí 0)
+            inputMultiplexer.addProcessor(hudStage);    // Thêm lại hudStage ở cuối
+            inputMultiplexer.addProcessor(1,new GameInputAdapter()); // Thêm lại GameInputAdapter
+            Gdx.input.setInputProcessor(inputMultiplexer); // Cập nhật lại
+            // Gdx.app.log("Inventory", "Inventory Closed");
+        }
+    }
+
+    private void showItemDescription(Item item) {
+    if (item != null && item.getEffect() != null) {
+        itemDescriptionLabel.setText(item.getEffect());
+    } else {
+        itemDescriptionLabel.setText("No description available.");
+    }
+    // Có thể thêm logic để làm nổi bật item được chọn trong danh sách nếu muốn
+}
+
+    private void hideItemDescription() {
+        itemDescriptionLabel.setText("Select an item to see its description."); // Reset về mặc định
+    }
+
     @Override
     public void show() {
         Gdx.app.log("GamePlayScreen", "show called");
         // Quan trọng: Khi màn hình này được hiển thị, bạn cần đặt InputProcessor
         // Nếu bạn có cả input cho game world (nhân vật di chuyển) và HUD (click nút trên HUD)
         // bạn sẽ cần InputMultiplexer. Tạm thời chỉ đặt cho HUD nếu có.
+        if (!inventoryVisible) { // Trạng thái ban đầu
+            inputMultiplexer.clear(); // Xóa hết processor cũ
+            inputMultiplexer.addProcessor(hudStage); // HUD (bao gồm cả inventory window nếu nó là con của hudStage)
+            inputMultiplexer.addProcessor(new GameInputAdapter()); // Input cho game
+        }
         Gdx.input.setInputProcessor(inputMultiplexer); // Cho phép HUD nhận input
     }
 
@@ -126,6 +252,19 @@ public class GamePlayScreen implements Screen {
         healthLabel.setText("Health: " + player.getCurrentHealth());
     }
 
+    private void handleInput(float delta) {
+        // Ví dụ xử lý input chung cho GamePlayScreen, không thuộc GameInputAdapter
+        if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
+            toggleInventory();
+        }
+
+        // Cập nhật máu người chơi (ví dụ khi nhấn SPACE)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && !inventoryVisible) { // Chỉ cho thay đổi máu khi inventory đóng
+            player.takeDamage(10);
+            if (player.getCurrentHealth() < 0) player.setCurrentHealth(100);
+        }
+    }
+
     @Override
     public void render(float delta) {
         // Xóa màn hình
@@ -134,11 +273,11 @@ public class GamePlayScreen implements Screen {
 
         // 1. Cập nhật logic game (di chuyển, AI, va chạm,...)
         updateGame(delta);
+        handleInput(delta);
 
         // 2. Vẽ thế giới game
         gameCamera.update(); // Cập nhật camera của game world
         game.batch.setProjectionMatrix(gameCamera.combined); // Quan trọng: Batch dùng camera của game
-
         game.batch.begin();
         // Vẽ nền (nếu có)
         if (backgroundTexture != null) {
@@ -151,7 +290,7 @@ public class GamePlayScreen implements Screen {
         if (playerTexture != null) {
             // Bạn sẽ cần có vị trí x, y cho player
             // ví dụ player.getX(), player.getY()
-            game.batch.draw(playerTexture, Gdx.graphics.getWidth() / 2f - Width / 2f, Gdx.graphics.getHeight() / 2f - Height / 2f, Width, Height);
+            game.batch.draw(playerTexture, player.getX() - Width / 2f, player.getY() - Height / 2f, Width, Height);
         }
         game.batch.end();
 
@@ -209,18 +348,35 @@ public class GamePlayScreen implements Screen {
     class GameInputAdapter extends InputAdapter {
         @Override
         public boolean keyDown(int keycode) {
+            // Nếu inventory đang hiển thị VÀ con trỏ chuột đang nằm trên inventory window
+            // thì không xử lý input game. Điều này giúp khi bạn click vào inventory (ví dụ để kéo)
+            // thì input game không bị kích hoạt.
+            if (inventoryVisible && inventoryWindow.hasKeyboardFocus()) { // Hoặc một kiểm tra khác phù hợp hơn
+                Gdx.app.log("GameInputAdapter", "Inventory has focus, not processing game input");
+                // return true; // Nếu muốn chặn hoàn toàn
+            }
+            if (inventoryVisible && Gdx.input.isCursorCatched()) {
+                // This is not a perfect check, but can help if mouse is over a UI element on inventory
+            }
+
+
+            if (inventoryVisible) return false; // Cách đơn giản nhất: Nếu inventory mở, không xử lý input game
+            // ... (code xử lý input game còn lại) ...
+
             if (keycode == Input.Keys.ESCAPE) {
                 Gdx.app.log("GameInputAdapter", "Escape pressed - Returning to Main Menu");
                 game.setScreen(new MainMenuScreen(game)); // Quay lại menu
                 dispose(); // Dispose GamePlayScreen
                 return true; // Input đã được xử lý
             }
-            // Thêm xử lý input cho nhân vật ở đây (di chuyển, tấn công, v.v.)
-            // Ví dụ:
-            // if (keycode == Input.Keys.W) { player.moveForward(); return true; }
-            // if (keycode == Input.Keys.S) { player.moveBackward(); return true; }
-            // if (keycode == Input.Keys.A) { player.moveLeft(); return true; }
-            // if (keycode == Input.Keys.D) { player.moveRight(); return true; }
+
+            // Di chuyển nhân vật ví dụ
+            float moveAmount = 100.0f * Gdx.graphics.getDeltaTime(); // Tốc độ di chuyển
+            if (keycode == Input.Keys.W) { player.y += moveAmount; return true; }
+            if (keycode == Input.Keys.S) { player.y -= moveAmount; return true; }
+            if (keycode == Input.Keys.A) { player.x -= moveAmount; return true; }
+            if (keycode == Input.Keys.D) { player.x += moveAmount; return true; }
+
 
             Gdx.app.log("GameInputAdapter", "Key Down: " + Input.Keys.toString(keycode));
             return false; // Cho phép các InputProcessor khác (nếu có) xử lý input này
