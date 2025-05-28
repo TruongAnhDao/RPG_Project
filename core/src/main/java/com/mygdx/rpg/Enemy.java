@@ -21,6 +21,6 @@ public class Enemy extends Character {
         for (Item item : dropItems) {
             player.addItem(item);
         }
-        player.gainExp(expReward);
+        player.addExperience(expReward);
     }
 }

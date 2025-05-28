@@ -34,6 +34,10 @@ public class Character {
         return hp;
     }
 
+    public int getMaxHealth() {
+        return maxhp;
+    }
+
     public void attack(Character target) {
         int damage = Math.max(0, this.attack - target.defense);
         target.takeDamage(damage);
@@ -49,16 +53,5 @@ public class Character {
     public void setCurrentHealth(int health) { // Cần thiết nếu muốn reset máu
         this.hp = Math.max(0, Math.min(health, maxhp));
     }
-
-    public void levelUp() {
-        level++;
-        hp += 10;
-        mp += 5;
-        attack += 2;
-        defense += 2;
-        speed += 1;
-        System.out.println(name + " leveled up to " + level + "!");
-    }
-
     // Getter & Setter có thể thêm nếu cần
 }

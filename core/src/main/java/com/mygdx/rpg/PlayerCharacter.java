@@ -7,17 +7,95 @@ import com.badlogic.gdx.Gdx;
 
 public class PlayerCharacter extends Character {
     private List<Item> inventory;
-    private int exp;
     private int gold;
     public float x, y; // các biến vị trí
+    private int currentMana;
+    private int maxMana;
+    private int experience;
+    private int level;
+    private int experienceToNextLevel;
 
     public PlayerCharacter(String name) {
         super(name, 1, 100, 50, 10, 5, 5);
+
+        configureStatsForLevel();
+
+        this.currentMana = this.maxMana;
+
         this.inventory = new ArrayList<>(); // Khởi tạo hành trang rỗng
-        exp = 0;
-        gold = 0;
         this.x = Gdx.graphics.getWidth() / 2f ; // Vị trí ban đầu ví dụ
         this.y = Gdx.graphics.getHeight() / 2f ;
+
+        gold = 0;
+    }
+
+    private void configureStatsForLevel() {
+        // Ví dụ: công thức tính chỉ số dựa trên level
+        this.maxhp = 80 + this.level * 20; // Ví dụ: 100 ở level 1
+        this.maxMana = 40 + this.level * 10;   // Ví dụ: 50 ở level 1
+        this.experience = 0;
+        // Ví dụ: Lượng XP cần để lên cấp tiếp theo
+        this.experienceToNextLevel = calculateXpForNextLevel(this.level);
+    }
+
+    private int calculateXpForNextLevel(int currentLevel) {
+        return 75 + currentLevel * 25; // Ví dụ: 100 XP cho level 1 lên 2, 125 XP cho level 2 lên 3
+    }
+
+    // --- Getters cho các chỉ số mới ---
+    public int getCurrentMana() { return currentMana; }
+    public int getMaxMana() { return maxMana; }
+    public int getExperience() { return experience; }
+    public int getLevel() { return level; }
+    public int getExperienceToNextLevel() { return experienceToNextLevel; }
+
+    // --- Phương thức thay đổi chỉ số ---
+    public void spendMana(int amount) {
+        if (amount > 0) {
+            this.currentMana -= amount;
+            if (this.currentMana < 0) this.currentMana = 0;
+            Gdx.app.log("PlayerCharacter", name + " spent " + amount + " mana. Current Mana: " + currentMana);
+        }
+    }
+
+    public void restoreMana(int amount) {
+        if (amount > 0) {
+            this.currentMana += amount;
+            if (this.currentMana > this.maxMana) this.currentMana = this.maxMana;
+            Gdx.app.log("PlayerCharacter", name + " restored " + amount + " mana. Current Mana: " + currentMana);
+        }
+    }
+
+    public void addExperience(int amount) {
+        if (amount <= 0) return;
+
+        this.experience += amount;
+        Gdx.app.log("PlayerCharacter", name + " gained " + amount + " XP. Total XP: " + experience + "/" + experienceToNextLevel);
+
+        while (this.experience >= this.experienceToNextLevel) {
+            levelUp();
+        }
+    }
+
+    private void levelUp() {
+        this.level++;
+        this.experience -= this.experienceToNextLevel; // Giữ lại XP dư
+        Gdx.app.log("PlayerCharacter", name + " leveled up to Level " + this.level + "!");
+
+        // Cập nhật lại chỉ số cho cấp mới
+        int oldMaxHealth = this.maxhp;
+        int oldMaxMana = this.maxMana;
+
+        configureStatsForLevel(); // Tính lại maxHealth, maxMana, experienceToNextLevel
+
+        // Hồi một phần hoặc toàn bộ HP/Mana khi lên cấp (tùy thiết kế)
+        this.hp += (this.maxhp - oldMaxHealth); // Hồi lượng máu tăng thêm
+        if (this.hp > this.maxhp) this.hp = this.maxhp;
+
+        this.currentMana += (this.maxMana - oldMaxMana); // Hồi lượng mana tăng thêm
+        if (this.currentMana > this.maxMana) this.currentMana = this.maxMana;
+
+        Gdx.app.log("PlayerCharacter", "Stats updated. HP: " + hp + "/" + maxhp + ", Mana: " + currentMana + "/" + maxMana);
     }
 
     public void addItem(Item item) {
@@ -110,15 +188,6 @@ public class PlayerCharacter extends Character {
     public void addGold(int amount) {
         gold += amount;
         System.out.println(name + " received " + amount + " gold. Total gold: " + gold);
-    }
-
-    public void gainExp(int amount) {
-        exp += amount;
-        System.out.println(name + " gained " + amount + " EXP. Total: " + exp);
-        if (exp >= level * 100) {
-            exp -= level * 100;
-            levelUp();
-        }
     }
 
     public void interact(String object) {

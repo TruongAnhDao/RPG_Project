@@ -37,6 +37,9 @@ public class GamePlayScreen implements Screen {
     // Các đối tượng game
     private PlayerCharacter player; // Đối tượng người chơi
     private Label healthLabel;      // Label để hiển thị máu
+    private Label manaLabel;
+    private Label levelLabel;
+    private Label experienceLabel;
 
     // Ví dụ: Texture cho nền game hoặc nhân vật
     private Texture playerTexture;
@@ -108,8 +111,15 @@ public class GamePlayScreen implements Screen {
         // Khởi tạo healthLabel ở đây, nhưng sẽ cập nhật text trong render()
         healthLabel = new Label("Health: " + player.getCurrentHealth(), skin, "default"); // Lấy máu ban đầu
         hudTable.add(healthLabel).pad(10).row();
-        // Bạn có thể thêm các label khác cho mana, điểm, v.v.
-        // Label manaLabel = new Label("Mana: " + player.getMana(), skin, "default");
+
+        manaLabel = new Label("Mana: " + player.getCurrentMana() + "/" + player.getMaxMana(), skin, "default");
+        hudTable.add(manaLabel).padLeft(10).row(); // padLeft để căn với healthLabel nếu ở cùng cột
+
+        levelLabel = new Label("Level: " + player.getLevel(), skin, "default");
+        hudTable.add(levelLabel).padLeft(10).row();
+
+        experienceLabel = new Label("XP: " + player.getExperience() + "/" + player.getExperienceToNextLevel(), skin, "default");
+        hudTable.add(experienceLabel).padLeft(10).row();
         // hudTable.add(manaLabel).pad(10);
 
         hudStage.addActor(hudTable);
@@ -305,10 +315,20 @@ public class GamePlayScreen implements Screen {
         // Di chuyển nhân vật, cập nhật AI, xử lý va chạm, v.v.
         // Ví dụ: player.update(delta);
 
+        // --- Cập nhật HUD Labels ---
+        healthLabel.setText("Health: " + player.getCurrentHealth() + "/" + player.getMaxHealth()); // Thêm maxHealth cho rõ ràng
+        manaLabel.setText("Mana: " + player.getCurrentMana() + "/" + player.getMaxMana());
+        levelLabel.setText("Level: " + player.getLevel());
+        experienceLabel.setText("XP: " + player.getExperience() + "/" + player.getExperienceToNextLevel());
+
         // Tạm thời mô phỏng việc máu thay đổi để test HUD
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             player.takeDamage(10); // takeDamage
             if (player.getCurrentHealth() < 0) player.setCurrentHealth(100); // Reset máu ví dụ
+        }
+        // --- Tạm thời: Thêm XP khi nhấn phím E ---
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E) && !inventoryVisible) {
+            player.addExperience(30); // Cộng 30 XP mỗi lần nhấn E
         }
 
         // Cập nhật text của healthLabel
