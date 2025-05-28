@@ -98,14 +98,48 @@ public class PlayerCharacter extends Character {
         Gdx.app.log("PlayerCharacter", "Stats updated. HP: " + hp + "/" + maxhp + ", Mana: " + currentMana + "/" + maxMana);
     }
 
-    public void addItem(Item item) {
-        this.inventory.add(item);
-        Gdx.app.log("PlayerCharacter", "Added item: " + item.getName());
+    public void addItem(Item newItem) {
+        if (newItem == null || newItem.getQuantity() <= 0) return;
+
+        if (newItem.isStackable()) {
+            boolean itemStacked = false;
+            // Tìm stack hiện có của item cùng loại và còn chỗ
+            for (Item existingItem : inventory) {
+                if (existingItem.isSameType(newItem) && existingItem.getQuantity() < existingItem.getMaxStackSize()) {
+                    int canAdd = existingItem.getMaxStackSize() - existingItem.getQuantity();
+                    int amountToAdd = Math.min(canAdd, newItem.getQuantity());
+
+                    existingItem.addQuantity(amountToAdd); // addQuantity đã có giới hạn bởi maxStackSize của existingItem
+                    newItem.removeQuantity(amountToAdd); // Giảm số lượng của newItem
+
+                    Gdx.app.log("PlayerCharacter", "Stacked " + amountToAdd + " of " + newItem.getName() + " to existing stack. Remaining in new item: " + newItem.getQuantity());
+                    itemStacked = true;
+
+                    if (newItem.getQuantity() <= 0) {
+                    break; // Đã cộng dồn hết newItem
+                    }
+                }
+            }   
+
+            // Nếu newItem vẫn còn số lượng (chưa stack hết hoặc không tìm thấy stack phù hợp)
+            // thì thêm nó như một stack mới (nếu còn chỗ trong inventory)
+            if (newItem.getQuantity() > 0) {
+                // (Tùy chọn: Kiểm tra giới hạn số ô trong inventory ở đây nếu có)
+                this.inventory.add(newItem); // Thêm phần còn lại (hoặc toàn bộ nếu không stack được) như một item mới
+                Gdx.app.log("PlayerCharacter", "Added new stack of " + newItem.getName() + " (x" + newItem.getQuantity() + ")");
+            }
+        } else {
+            // Item không stackable, thêm như bình thường (mỗi item là một ô)
+            // (Tùy chọn: Kiểm tra giới hạn số ô trong inventory)
+            this.inventory.add(newItem);
+            Gdx.app.log("PlayerCharacter", "Added non-stackable item: " + newItem.getName());
+        }
     }
 
     public boolean useItem(Item itemToUse) {
         if (inventory.contains(itemToUse)) {
-            boolean consumed = false;
+            boolean consumedOrUsed = false; // Đổi tên biến cho rõ ràng hơn
+            String originalItemName = itemToUse.getName(); // Lưu tên gốc phòng trường hợp item bị xóa
             // Xử lý hiệu ứng dựa trên loại và tên vật phẩm
             if ("Consumable".equalsIgnoreCase(itemToUse.getType())) {
                 if ("Potion".equalsIgnoreCase(itemToUse.getName())) {
@@ -116,7 +150,7 @@ public class PlayerCharacter extends Character {
                             this.hp = this.maxhp;
                         }
                         Gdx.app.log("PlayerCharacter", "Used Potion. Healed " + healAmount + " HP. Current HP: " + this.hp);
-                        consumed = true;
+                        consumedOrUsed = true;
                     } else {
                         Gdx.app.log("PlayerCharacter", "Health is full. Cannot use Potion.");
                         return false; // Không sử dụng nếu máu đầy
@@ -126,7 +160,7 @@ public class PlayerCharacter extends Character {
                     if (this.currentMana < this.maxMana) {
                         restoreMana(manaRestoreAmount); // Gọi hàm restoreMana bạn đã tạo
                         Gdx.app.log("PlayerCharacter", "Used Mana Potion. Restored " + manaRestoreAmount + " MP. Current MP: " + this.currentMana);
-                        consumed = true;
+                        consumedOrUsed = true;
                     } else {
                         Gdx.app.log("PlayerCharacter", "Mana is full. Cannot use Mana Potion.");
                         return false; // Không sử dụng nếu mana đầy
@@ -138,17 +172,20 @@ public class PlayerCharacter extends Character {
                 return false; // Không phải là vật phẩm có thể tiêu thụ trực tiếp qua hành động này
             }
 
-            if (consumed) {
-                // Xóa vật phẩm khỏi hành trang một cách an toàn
-                // Sử dụng Iterator để tránh ConcurrentModificationException
-                Iterator<Item> iter = inventory.iterator();
-                while (iter.hasNext()) {
-                    Item currentItem = iter.next();
-                    // So sánh đối tượng trực tiếp hoặc dựa trên ID duy nhất nếu có
-                    if (currentItem == itemToUse) { // Hoặc currentItem.equals(itemToUse) nếu bạn override equals()
-                        iter.remove();
-                        Gdx.app.log("PlayerCharacter", "Removed " + itemToUse.getName() + " from inventory.");
-                        break; // Giả sử mỗi lần chỉ dùng 1 item cùng loại
+            if (consumedOrUsed) {
+                itemToUse.removeQuantity(1); // Giảm số lượng đi 1
+                Gdx.app.log("PlayerCharacter", "Used one " + originalItemName + ". Remaining: " + itemToUse.getQuantity());
+
+                if (itemToUse.getQuantity() <= 0) {
+                    // Nếu số lượng về 0, xóa item khỏi inventory
+                    Iterator<Item> iter = inventory.iterator();
+                    while (iter.hasNext()) {
+                        Item currentItem = iter.next();
+                        if (currentItem == itemToUse) { // Hoặc equals() nếu bạn đã override
+                            iter.remove();
+                            Gdx.app.log("PlayerCharacter", "Stack of " + originalItemName + " depleted and removed from inventory.");
+                            break;
+                        }
                     }
                 }
                 return true; // Vật phẩm đã được sử dụng và tiêu thụ
@@ -163,6 +200,9 @@ public class PlayerCharacter extends Character {
             Gdx.app.log("PlayerCharacter", "Attempted to drop null or non-existent item.");
             return false;
         }
+
+        // itemToDrop.removeQuantity(1);
+        // if (itemToDrop.getQuantity() <= 0) { /* xóa cả stack khỏi inventory */ }
 
         // Sử dụng Iterator để xóa an toàn
         Iterator<Item> iter = inventory.iterator();

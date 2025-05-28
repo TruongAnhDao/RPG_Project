@@ -88,12 +88,15 @@ public class GamePlayScreen implements Screen {
         player = new PlayerCharacter("Hero"); // Tạo nhân vật
         // player.setHealth(100); // Nếu cần thiết lập máu ban đầu qua setter
 
-        // --- Thêm item mẫu vào hành trang của người chơi để test ---
-        player.addItem(new Item("Potion", "Consumable", "Heals 50 HP"));
-        player.addItem(new Item("Sword of Power", "Weapon", "A mighty fine sword."));
-        player.addItem(new Item("Old Key", "Key Item", "Opens an old door."));
-        player.addItem(new Item("Mana Potion", "Consumable", "Restores 30 MP"));
-        player.addItem(new Item("Shield", "Armor", "Provides good defense."));
+        // Thêm item mẫu vào hành trang của người chơi để test
+        // Item(String name, String type, String description, int initialQuantity, int maxStackSize)
+        player.addItem(new Item("Potion", "Consumable", "Heals 50 HP", 5, 10)); // 5 Potion, stack tối đa 10
+        player.addItem(new Item("Potion", "Consumable", "Heals 50 HP", 3, 10)); // Thêm 3 Potion nữa để test stacking
+        player.addItem(new Item("Sword of Power", "Weapon", "A mighty fine sword.", 1, 1)); // Kiếm không stack
+        player.addItem(new Item("Old Key", "Key Item", "Opens an old door.", 1, 1));
+        player.addItem(new Item("Mana Potion", "Consumable", "Restores 30 MP", 3, 5)); // 3 Mana Potion, stack tối đa 5
+        player.addItem(new Item("Arrow", "Ammo", "Standard arrow.", 20, 50)); // 20 mũi tên, stack 50
+        player.addItem(new Item("Arrow", "Ammo", "Standard arrow.", 15, 50)); // Thêm 15 mũi tên nữa
 
         // --- Tải tài nguyên ví dụ ---
         try {
@@ -254,8 +257,14 @@ public class GamePlayScreen implements Screen {
             inventoryItemTable.add(new Label("Inventory is empty.", skin)).pad(10);
         } else {
             for (Item item : items) {
-                // Tạo TextButton 
-                TextButton itemButton = new TextButton(item.getName() + " (" + item.getType() + ")", skin, "default");;
+                String buttonText = item.getName();
+                if (item.isStackable() && item.getQuantity() > 1) { // Hoặc chỉ cần item.getQuantity() > 1 nếu mọi item > 1 đều là stackable
+                    buttonText += " (x" + item.getQuantity() + ")";
+                }
+                buttonText += " (" + item.getType() + ")";
+
+                TextButton itemButton = new TextButton(buttonText, skin, "default");
+
                 itemButton.setUserObject(item); // **Gán đối tượng Item vào UserObject của Button**
 
                 itemButton.addListener(new ClickListener() {
