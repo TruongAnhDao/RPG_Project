@@ -22,6 +22,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; // Để cuộn danh sách
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton; // Có thể dùng để tương tác với item sau này
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; // Cho nút đóng
 import com.badlogic.gdx.scenes.scene2d.InputEvent;     // Cho ClickListener
+import com.badlogic.gdx.maps.tiled.TiledMap;                         // Thêm import
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      // Thêm import
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer; // Thêm import (nếu map là orthogonal)
 
 public class GamePlayScreen implements Screen {
 
@@ -43,7 +46,8 @@ public class GamePlayScreen implements Screen {
 
     // Ví dụ: Texture cho nền game hoặc nhân vật
     private Texture playerTexture;
-    private Texture backgroundTexture; // Tùy chọn
+    private TiledMap tiledMap;
+    private OrthogonalTiledMapRenderer tiledMapRenderer;
 
     private InputMultiplexer inputMultiplexer; // Để xử lý nhiều nguồn input
 
@@ -108,10 +112,8 @@ public class GamePlayScreen implements Screen {
         // --- Tải tài nguyên ví dụ ---
         try {
             playerTexture = new Texture(Gdx.files.internal("PlayScreen/playertexture.png")); 
-            backgroundTexture = new Texture(Gdx.files.internal("PlayScreen/background.png")); 
         } catch (Exception e) {
             Gdx.app.error("GamePlayScreen", "Could not load textures", e);
-            // playerTexture và backgroundTexture sẽ là null, cần xử lý trong render
         }
 
         // Tạo các UI elements cho HUD 
@@ -137,6 +139,23 @@ public class GamePlayScreen implements Screen {
 
         // --- Thiết lập Inventory UI ---
         setupInventoryUI();
+
+        // --- Tải TileMap ---
+        try {
+            tiledMap = new TmxMapLoader().load("maplan1.tmx"); 
+            // Đơn vị của map renderer, nếu bạn muốn mỗi pixel trong map tương ứng 1 đơn vị thế giới:
+            tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, game.batch);
+            // Nếu bạn muốn dùng unit scale (ví dụ 1 tile = 32 đơn vị thế giới, mỗi đơn vị là 1 pixel)
+            // float unitScale = 1f / 32f; // Ví dụ: 1 pixel trên màn hình = 1/32 đơn vị thế giới
+            // tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, unitScale, game.batch);
+            // Việc dùng unitScale sẽ ảnh hưởng đến tọa độ và tốc độ của player, chúng ta sẽ giữ đơn giản trước.
+
+            Gdx.app.log("GamePlayScreen", "Tilemap loaded successfully.");
+        } catch (Exception e) {
+            Gdx.app.error("GamePlayScreen", "Error loading tilemap", e);
+            tiledMap = null; // Để tránh lỗi NullPointerException nếu tải thất bại
+            tiledMapRenderer = null;
+        }
 
         // --- Thiết lập InputMultiplexer ---
         inputMultiplexer = new InputMultiplexer();
@@ -461,15 +480,18 @@ public class GamePlayScreen implements Screen {
 
         // --- CẬP NHẬT VÀ ÁP DỤNG GAME CAMERA ---
         gameCamera.update(); // Rất quan trọng: Cập nhật camera sau khi đã thay đổi vị trí (hoặc các thuộc tính khác)
-        game.batch.setProjectionMatrix(gameCamera.combined); // Áp dụng ma trận chiếu của camera cho SpriteBatch
 
+        // --- Vẽ TileMap ---
+        if (tiledMapRenderer != null) {
+            tiledMapRenderer.setView(gameCamera); // Đặt "góc nhìn" của map renderer theo gameCamera
+            tiledMapRenderer.render();           // Vẽ tất cả các layer của map
+        }
+
+        // --- Vẽ các đối tượng game khác (Player, Enemies, Items trên đất, v.v.) ---
+        // Đảm bảo ma trận chiếu của gameCamera được áp dụng cho batch vẽ sprite
+        game.batch.setProjectionMatrix(gameCamera.combined); // Áp dụng ma trận chiếu của camera cho SpriteBatch
         // --- Vẽ thế giới game (sẽ di chuyển theo camera) ---
         game.batch.begin();
-
-        // Vẽ nền 
-        if (backgroundTexture != null) {
-            game.batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        }
 
         // Vẽ nhân vật (ví dụ đơn giản)
         float Width = 100;
@@ -479,6 +501,7 @@ public class GamePlayScreen implements Screen {
             // ví dụ player.getX(), player.getY()
             game.batch.draw(playerTexture, player.getX() - Width / 2f, player.getY() - Height / 2f, Width, Height);
         }
+        // Vẽ các entities khác ở đây
         game.batch.end();
 
 
@@ -525,8 +548,11 @@ public class GamePlayScreen implements Screen {
         if (playerTexture != null) {
             playerTexture.dispose();
         }
-        if (backgroundTexture != null) {
-            backgroundTexture.dispose();
+        if (tiledMap != null) {
+            tiledMap.dispose();
+        }
+        if (tiledMapRenderer != null) {
+            tiledMapRenderer.dispose(); // Quan trọng!
         }
         // Dispose các tài nguyên khác của màn hình game (map, textures nhân vật,...)
     }
