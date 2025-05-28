@@ -6,17 +6,15 @@ public class Character {
     protected String name;
     protected int level;
     protected int hp;
-    protected int mp;
     protected int attack;
     protected int defense;
     protected int speed;
     protected int maxhp;
 
-    public Character(String name, int level, int maxhp, int mp, int attack, int defense, int speed) {
+    public Character(String name, int level, int maxhp, int attack, int defense, int speed) {
         this.name = name;
         this.level = level;
         this.hp = this.maxhp;
-        this.mp = mp;
         this.attack = attack;
         this.defense = defense;
         this.speed = speed;

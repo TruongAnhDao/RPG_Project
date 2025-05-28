@@ -16,7 +16,7 @@ public class PlayerCharacter extends Character {
     private int experienceToNextLevel;
 
     public PlayerCharacter(String name) {
-        super(name, 1, 100, 50, 10, 5, 5);
+        super(name, 1, 100, 10, 5, 5);
 
         configureStatsForLevel();
 
@@ -42,12 +42,31 @@ public class PlayerCharacter extends Character {
         return 75 + currentLevel * 25; // Ví dụ: 100 XP cho level 1 lên 2, 125 XP cho level 2 lên 3
     }
 
-    // --- Getters cho các chỉ số mới ---
+    // --- Getters/setters cho các chỉ số mới ---
     public int getCurrentMana() { return currentMana; }
     public int getMaxMana() { return maxMana; }
     public int getExperience() { return experience; }
     public int getLevel() { return level; }
     public int getExperienceToNextLevel() { return experienceToNextLevel; }
+
+    public void setLevel(int level) { this.level = Math.max(1, level); }
+    public void setExperience(int experience) { this.experience = Math.max(0, experience); }
+    public void setMaxHealth(int maxHealth) { this.maxhp = Math.max(1, maxHealth); }
+    public void setMaxMana(int maxMana) { this.maxMana = Math.max(1, maxMana); }
+    public void setCurrentMana(int mana) {
+        this.currentMana = Math.max(0, Math.min(mana, maxMana));
+    }
+
+    public void recalculateDependentStats() {
+        // Gọi lại hàm cấu hình chỉ số dựa trên level hiện tại
+        // Điều này sẽ cập nhật experienceToNextLevel và có thể cả maxHealth/maxMana
+        // nếu bạn muốn chúng chỉ được tính từ level.
+        // Hoặc, nếu bạn lưu maxHealth/maxMana, thì chỉ cần tính experienceToNextLevel.
+        this.experienceToNextLevel = calculateXpForNextLevel(this.level);
+        // Đảm bảo currentHealth/Mana không vượt max mới (nếu max thay đổi)
+        if (this.hp > this.maxhp) this.hp = this.maxhp;
+        if (this.currentMana > this.maxMana) this.currentMana = this.maxMana;
+    }
 
     // --- Phương thức thay đổi chỉ số ---
     public void spendMana(int amount) {
