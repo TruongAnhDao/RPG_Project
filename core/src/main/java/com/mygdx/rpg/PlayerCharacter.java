@@ -122,9 +122,15 @@ public class PlayerCharacter extends Character {
                         return false; // Không sử dụng nếu máu đầy
                     }
                 } else if ("Mana Potion".equalsIgnoreCase(itemToUse.getName())) {
-                    // Tương tự, bạn có thể thêm logic cho Mana Potion
-                    Gdx.app.log("PlayerCharacter", "Used Mana Potion (logic not implemented yet).");
-                    consumed = true; // Giả sử tiêu thụ
+                    int manaRestoreAmount = 30; // Ví dụ
+                    if (this.currentMana < this.maxMana) {
+                        restoreMana(manaRestoreAmount); // Gọi hàm restoreMana bạn đã tạo
+                        Gdx.app.log("PlayerCharacter", "Used Mana Potion. Restored " + manaRestoreAmount + " MP. Current MP: " + this.currentMana);
+                        consumed = true;
+                    } else {
+                        Gdx.app.log("PlayerCharacter", "Mana is full. Cannot use Mana Potion.");
+                        return false; // Không sử dụng nếu mana đầy
+                    }
                 }
                 // Thêm các loại "Consumable" khác ở đây
             } else {

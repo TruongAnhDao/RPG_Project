@@ -55,6 +55,7 @@ public class GamePlayScreen implements Screen {
     private Label itemDescriptionLabel; // Label để hiển thị mô tả vật phẩm
     private TextButton dropItemButton; // Nút để vứt bỏ vật phẩm
     private Item currentSelectedItem = null; // Để lưu trữ vật phẩm đang được chọn
+    private TextButton useItemButton; // Nút để sử dụng vật phẩm
 
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
@@ -189,11 +190,46 @@ public class GamePlayScreen implements Screen {
             }
         });
 
+        // --- Khởi tạo nút Use ---
+        useItemButton = new TextButton("Use", skin, "default");
+        useItemButton.setVisible(false); // Ban đầu ẩn nút Use
+
+        useItemButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (currentSelectedItem != null && isItemUsable(currentSelectedItem)) { // Kiểm tra xem item có dùng được không
+                    Gdx.app.log("InventoryAction", "Attempting to use: " + currentSelectedItem.getName());
+                    if (player.useItem(currentSelectedItem)) {
+                        Gdx.app.log("InventoryAction", currentSelectedItem.getName() + " used successfully.");
+                        populateInventoryTable(); // Cập nhật lại danh sách hành trang
+                        // Sau khi dùng, item có thể đã biến mất hoặc thay đổi
+                        // Ẩn mô tả và các nút hành động, reset item đang chọn
+                        if (player.getInventory().contains(currentSelectedItem)) {
+                            // Nếu item vẫn còn (ví dụ không phải consumable 1 lần dùng, hoặc dùng thất bại nhưng vẫn còn)
+                            showItemDescription(currentSelectedItem); // Hiển thị lại thông tin của nó
+                        } else {
+                            // Item đã bị tiêu thụ hoàn toàn
+                            hideItemDescription(); // Ẩn mô tả, ẩn nút Use/Drop
+                            currentSelectedItem = null; // Không còn item nào được chọn
+                        }
+                    } else {
+                        Gdx.app.log("InventoryAction", "Could not use " + currentSelectedItem.getName());
+                        // Hiển thị thông báo lỗi cho người chơi (ví dụ: máu đầy)
+                        itemDescriptionLabel.setText("Could not use " + currentSelectedItem.getName() + ".");
+                        // Nút Use/Drop vẫn hiển thị vì item vẫn đang được chọn
+                    }
+                }
+            }
+        });
+
         // Thêm một hàng mới cho nút Drop (hoặc đặt nó ở vị trí khác tùy ý)
         // Ví dụ: đặt nó dưới phần mô tả
         Table actionButtonsTable = new Table(); // Tạo một bảng nhỏ để chứa các nút hành động nếu cần
-        // actionButtonsTable.add(useItemButton).pad(5); // Nếu bạn có nút "Use" riêng
-        actionButtonsTable.add(dropItemButton).pad(5);
+        // Cập nhật actionButtonsTable để thêm nút Use
+        // Table actionButtonsTable = new Table(); // Đã khai báo ở bước trước
+        actionButtonsTable.clearChildren(); // Xóa các nút cũ nếu có (đảm bảo thứ tự đúng)
+        actionButtonsTable.add(useItemButton).pad(5).uniformX().fillX(); // uniformX và fillX để nút đều và chiếm không gian
+        actionButtonsTable.add(dropItemButton).pad(5).uniformX().fillX();
 
         inventoryWindow.row(); // Xuống hàng mới sau ScrollPane và DescriptionLabel
         inventoryWindow.add(actionButtonsTable).pad(5); // Thêm bảng chứa nút Drop
@@ -201,6 +237,13 @@ public class GamePlayScreen implements Screen {
         // Thêm inventoryWindow vào hudStage để nó được vẽ và nhận input (khi visible)
         // Chúng ta thêm nó vào hudStage để nó được vẽ trên cùng các element khác của HUD
         hudStage.addActor(inventoryWindow);
+    }
+
+    private boolean isItemUsable(Item item) {
+        if (item == null) return false;
+        // Hiện tại, chúng ta dựa vào type "Consumable"
+        // Bạn có thể mở rộng logic này sau (ví dụ: item có cờ isUsable, hoặc kiểm tra các type khác)
+        return "Consumable".equalsIgnoreCase(item.getType());
     }
 
     private void populateInventoryTable() {
@@ -223,30 +266,6 @@ public class GamePlayScreen implements Screen {
 
                         // Hiển thị mô tả trước
                         showItemDescription(clickedItem);
-
-                        // Nếu là vật phẩm có thể sử dụng ngay khi click (ví dụ: Consumable)
-                        if ("Consumable".equalsIgnoreCase(clickedItem.getType())) {
-                            // Thêm một nút "Use" hoặc xử lý trực tiếp
-                            // Ví dụ xử lý trực tiếp:
-                            if (player.useItem(clickedItem)) {
-                                Gdx.app.log("InventoryAction", clickedItem.getName() + " used successfully.");
-                                populateInventoryTable();
-                                // Sau khi dùng, item đã biến mất, nên không còn "selected" để drop nữa
-                                // Có thể cập nhật mô tả hoặc ẩn đi
-                                if (player.getInventory().contains(clickedItem)) { // Kiểm tra xem item còn không (ví dụ item không bị consume 100%)
-                                    showItemDescription(clickedItem); // Nếu vẫn còn thì hiển thị lại
-                                } else {
-                                    hideItemDescription(); // Nếu item đã bị consume hoàn toàn
-                                    currentSelectedItem = null; // Đảm bảo không còn item nào được chọn
-                                }
-
-                            } else {
-                                Gdx.app.log("InventoryAction", "Could not use " + clickedItem.getName());
-                                itemDescriptionLabel.setText("Could not use " + clickedItem.getName() + ".");
-                                // Nút Drop vẫn sẽ hiển thị dựa trên item được click ban đầu
-                            }
-                        }
-                        // Nếu không phải Consumable, chỉ hiển thị mô tả như trước
                     }
                 });
 
@@ -283,9 +302,17 @@ public class GamePlayScreen implements Screen {
         if (item != null && item.getEffect() != null) {
             itemDescriptionLabel.setText(item.getEffect());
             dropItemButton.setVisible(true); // Hiển thị nút Drop
+
+            // Kiểm tra xem item có dùng được không để hiển thị nút Use
+            if (isItemUsable(item)) {
+                useItemButton.setVisible(true);
+            } else {
+                useItemButton.setVisible(false);
+            }
         } else {
             itemDescriptionLabel.setText("No description available.");
             dropItemButton.setVisible(false); // Ẩn nút Drop nếu không có item hoặc mô tả
+            useItemButton.setVisible(false);
             currentSelectedItem = null;
         }
     }
@@ -293,6 +320,7 @@ public class GamePlayScreen implements Screen {
     private void hideItemDescription() {
         itemDescriptionLabel.setText("Select an item to see its description.");
         dropItemButton.setVisible(false); // Luôn ẩn nút Drop khi không có mô tả/item nào được chọn
+        useItemButton.setVisible(false);
         currentSelectedItem = null; // Không còn item nào được chọn
 }
 
