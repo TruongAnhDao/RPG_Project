@@ -57,6 +57,13 @@ public class GamePlayScreen implements Screen {
     private Item currentSelectedItem = null; // Để lưu trữ vật phẩm đang được chọn
     private TextButton useItemButton; // Nút để sử dụng vật phẩm
 
+    // Cờ cho trạng thái di chuyển
+    private boolean movingUp = false;
+    private boolean movingDown = false;
+    private boolean movingLeft = false;
+    private boolean movingRight = false;
+
+
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
 
@@ -351,6 +358,18 @@ public class GamePlayScreen implements Screen {
     private void updateGame(float delta) {
         // Di chuyển nhân vật, cập nhật AI, xử lý va chạm, v.v.
         // Ví dụ: player.update(delta);
+        handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
+        // Vị trí player.x, player.y được cập nhật ở đây
+
+        // --- CẬP NHẬT VỊ TRÍ CAMERA ĐỂ THEO SAU NGƯỜI CHƠI ---
+        // Đặt vị trí của gameCamera bằng với vị trí của người chơi
+        // gameCamera.position.x = player.getX();
+        // gameCamera.position.y = player.getY();
+        // Hoặc ngắn gọn hơn:
+        if (player != null) { // Đảm bảo player đã được khởi tạo
+             gameCamera.position.set(player.getX(), player.getY(), 0); // z = 0 cho 2D
+        }
+        // gameCamera.update() sẽ được gọi trong render() ngay trước khi vẽ
 
         // --- Cập nhật HUD Labels ---
         healthLabel.setText("Health: " + player.getCurrentHealth() + "/" + player.getMaxHealth()); // Thêm maxHealth cho rõ ràng
@@ -370,6 +389,51 @@ public class GamePlayScreen implements Screen {
 
         // Cập nhật text của healthLabel
         healthLabel.setText("Health: " + player.getCurrentHealth()); // Dòng này sẽ tự động cập nhật máu sau khi dùng Potion
+    }
+
+    private void handlePlayerMovement(float delta) {
+        if (inventoryVisible) return; // Không cho di chuyển khi inventory mở
+
+        float currentSpeed = player.getSpeed();
+        float moveAmount = currentSpeed * delta; // Lượng di chuyển dựa trên tốc độ và delta time
+
+        // Tạo vector di chuyển để chuẩn hóa nếu di chuyển chéo
+        float velocityX = 0;
+        float velocityY = 0;
+
+        if (movingUp) {
+            velocityY += moveAmount;
+        }
+        if (movingDown) {
+            velocityY -= moveAmount;
+        }
+        if (movingLeft) {
+            velocityX -= moveAmount;
+        }
+        if (movingRight) {
+            velocityX += moveAmount;
+        }
+
+        // Xử lý di chuyển chéo: Nếu cả hai hướng đều có vận tốc,
+        // nhân vật sẽ di chuyển nhanh hơn theo đường chéo.
+        // Để tránh điều này, chúng ta có thể chuẩn hóa vector vận tốc.
+        if (velocityX != 0 && velocityY != 0) {
+            // (velocity.len() là độ dài vector, nếu khác 0 thì chia cho nó để được vector đơn vị)
+            // Sau đó nhân với moveAmount để có tốc độ chuẩn.
+            // Cách đơn giản hơn (gần đúng) là giảm tốc độ khi đi chéo:
+            float diagonalFactor = 0.7071f; // Khoảng 1/sqrt(2)
+            velocityX *= diagonalFactor;
+            velocityY *= diagonalFactor;
+        }
+        
+        // Cập nhật vị trí người chơi
+        player.x += velocityX;
+        player.y += velocityY;
+
+        // (Tùy chọn: Giới hạn vị trí người chơi trong màn hình hoặc trong map)
+        // Ví dụ giới hạn trong màn hình (nếu không có tilemap):
+        // player.x = Math.max(0, Math.min(player.x, Gdx.graphics.getWidth() - playerTexture.getWidth()));
+        // player.y = Math.max(0, Math.min(player.y, Gdx.graphics.getHeight() - playerTexture.getHeight()));
     }
 
     private void handleInput(float delta) {
@@ -395,11 +459,14 @@ public class GamePlayScreen implements Screen {
         updateGame(delta);
         handleInput(delta);
 
-        // 2. Vẽ thế giới game
-        gameCamera.update(); // Cập nhật camera của game world
-        game.batch.setProjectionMatrix(gameCamera.combined); // Quan trọng: Batch dùng camera của game
+        // --- CẬP NHẬT VÀ ÁP DỤNG GAME CAMERA ---
+        gameCamera.update(); // Rất quan trọng: Cập nhật camera sau khi đã thay đổi vị trí (hoặc các thuộc tính khác)
+        game.batch.setProjectionMatrix(gameCamera.combined); // Áp dụng ma trận chiếu của camera cho SpriteBatch
+
+        // --- Vẽ thế giới game (sẽ di chuyển theo camera) ---
         game.batch.begin();
-        // Vẽ nền (nếu có)
+
+        // Vẽ nền 
         if (backgroundTexture != null) {
             game.batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         }
@@ -491,15 +558,56 @@ public class GamePlayScreen implements Screen {
             }
 
             // Di chuyển nhân vật ví dụ
-            float moveAmount = 100.0f * Gdx.graphics.getDeltaTime(); // Tốc độ di chuyển
-            if (keycode == Input.Keys.W) { player.y += moveAmount; return true; }
-            if (keycode == Input.Keys.S) { player.y -= moveAmount; return true; }
-            if (keycode == Input.Keys.A) { player.x -= moveAmount; return true; }
-            if (keycode == Input.Keys.D) { player.x += moveAmount; return true; }
+            boolean keyProcessed = true; // Mặc định là input đã được xử lý
+            switch (keycode) {
+                case Input.Keys.W:
+                    movingUp = true;
+                    break;
+                case Input.Keys.S:
+                    movingDown = true;
+                    break;
+                case Input.Keys.A:
+                    movingLeft = true;
+                    break;
+                case Input.Keys.D:
+                    movingRight = true;
+                    break;
+                case Input.Keys.ESCAPE:
+                    Gdx.app.log("GameInputAdapter", "Escape pressed - Returning to Main Menu");
+                    game.setScreen(new MainMenuScreen(game));
+                    dispose();
+                    break;
+                default:
+                    keyProcessed = false; // Nếu không phải phím chúng ta quan tâm, đánh dấu là chưa xử lý
+                    break;
+            }
+            Gdx.app.log("GameInputAdapter", "Key Down: " + Input.Keys.toString(keycode)); // Có thể giữ lại để debug
+            return keyProcessed; // Trả về true nếu là phím di chuyển hoặc ESC/F5
+        }
 
+        @Override
+        public boolean keyUp(int keycode) {
+            if (inventoryVisible && keycode != Input.Keys.I) return false; // Cho phép phím I hoạt động để đóng inventory
 
-            Gdx.app.log("GameInputAdapter", "Key Down: " + Input.Keys.toString(keycode));
-            return false; // Cho phép các InputProcessor khác (nếu có) xử lý input này
+            boolean keyProcessed = true;
+            switch (keycode) {
+                case Input.Keys.W:
+                    movingUp = false;
+                    break;
+                case Input.Keys.S:
+                    movingDown = false;
+                    break;
+                case Input.Keys.A:
+                    movingLeft = false;
+                    break;
+                case Input.Keys.D:
+                    movingRight = false;
+                    break;
+                default:
+                    keyProcessed = false;
+                    break;
+            }
+            return keyProcessed;
         }
 
         @Override
@@ -507,7 +615,7 @@ public class GamePlayScreen implements Screen {
             // Xử lý click chuột/chạm màn hình trong thế giới game
             // Bạn có thể cần unproject tọa độ màn hình sang tọa độ thế giới game
             // Vector3 worldCoordinates = gameCamera.unproject(new Vector3(screenX, screenY, 0));
-            // Gdx.app.log("GameInputAdapter", "Touched at world coordinates: " + worldCoordinates.x + ", " + worldCoordinates.y);
+            //Gdx.app.log("GameInputAdapter", "Touched at world coordinates: " + worldCoordinates.x + ", " + worldCoordinates.y);
             return false;
         }
     }

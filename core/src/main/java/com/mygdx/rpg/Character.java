@@ -8,10 +8,10 @@ public class Character {
     protected int hp;
     protected int attack;
     protected int defense;
-    protected int speed;
+    protected float speed;
     protected int maxhp;
 
-    public Character(String name, int level, int maxhp, int attack, int defense, int speed) {
+    public Character(String name, int level, int maxhp, int attack, int defense, float speed) {
         this.name = name;
         this.level = level;
         this.hp = this.maxhp;

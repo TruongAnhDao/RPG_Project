@@ -21,6 +21,7 @@ public class PlayerCharacter extends Character {
         configureStatsForLevel();
 
         this.currentMana = this.maxMana;
+        this.speed = 200f;
 
         this.inventory = new ArrayList<>(); // Khởi tạo hành trang rỗng
         this.x = Gdx.graphics.getWidth() / 2f ; // Vị trí ban đầu ví dụ
@@ -48,7 +49,13 @@ public class PlayerCharacter extends Character {
     public int getExperience() { return experience; }
     public int getLevel() { return level; }
     public int getExperienceToNextLevel() { return experienceToNextLevel; }
+    public float getSpeed() {
+        return speed;
+    }
 
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
     public void setLevel(int level) { this.level = Math.max(1, level); }
     public void setExperience(int experience) { this.experience = Math.max(0, experience); }
     public void setMaxHealth(int maxHealth) { this.maxhp = Math.max(1, maxHealth); }
