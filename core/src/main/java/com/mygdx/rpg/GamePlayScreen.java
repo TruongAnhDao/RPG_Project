@@ -146,8 +146,8 @@ public class GamePlayScreen implements Screen {
             // Đơn vị của map renderer, nếu bạn muốn mỗi pixel trong map tương ứng 1 đơn vị thế giới:
             tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, game.batch);
             // Nếu bạn muốn dùng unit scale (ví dụ 1 tile = 32 đơn vị thế giới, mỗi đơn vị là 1 pixel)
-            // float unitScale = 1f / 32f; // Ví dụ: 1 pixel trên màn hình = 1/32 đơn vị thế giới
-            // tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, unitScale, game.batch);
+            float unitScale = 3f / 1f; // Ví dụ: 1 pixel trên màn hình = 1/32 đơn vị thế giới
+            tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, unitScale, game.batch);
             // Việc dùng unitScale sẽ ảnh hưởng đến tọa độ và tốc độ của player, chúng ta sẽ giữ đơn giản trước.
 
             Gdx.app.log("GamePlayScreen", "Tilemap loaded successfully.");
@@ -494,8 +494,8 @@ public class GamePlayScreen implements Screen {
         game.batch.begin();
 
         // Vẽ nhân vật (ví dụ đơn giản)
-        float Width = 100;
-        float Height = 100;
+        float Width = 80;
+        float Height = 80;
         if (playerTexture != null) {
             // Bạn sẽ cần có vị trí x, y cho player
             // ví dụ player.getX(), player.getY()
