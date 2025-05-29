@@ -142,7 +142,7 @@ public class GamePlayScreen implements Screen {
 
         // --- Tải TileMap ---
         try {
-            tiledMap = new TmxMapLoader().load("maplan1.tmx"); 
+            tiledMap = new TmxMapLoader().load("Map/MapRPG.tmx"); 
             // Đơn vị của map renderer, nếu bạn muốn mỗi pixel trong map tương ứng 1 đơn vị thế giới:
             tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, game.batch);
             // Nếu bạn muốn dùng unit scale (ví dụ 1 tile = 32 đơn vị thế giới, mỗi đơn vị là 1 pixel)
