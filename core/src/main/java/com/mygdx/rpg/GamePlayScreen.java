@@ -9,6 +9,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -43,6 +44,10 @@ public class GamePlayScreen implements Screen {
     private Label manaLabel;
     private Label levelLabel;
     private Label experienceLabel;
+    private ProgressBar healthBar;
+    private ProgressBar manaBar;
+    private ProgressBar experienceBar;
+    private Label healthValueLabel, manaValueLabel, experienceValueLabel; // Các label giá trị
 
     // Ví dụ: Texture cho nền game hoặc nhân vật
     private Texture playerTexture;
@@ -119,23 +124,48 @@ public class GamePlayScreen implements Screen {
         // Tạo các UI elements cho HUD 
         Table hudTable = new Table();
         hudTable.setFillParent(true);
-        hudTable.top().left(); // Căn HUD ở góc trên bên trái
+        hudTable.top().left().pad(10); // Thêm padding chung cho hudTable
 
-        // Khởi tạo healthLabel ở đây, nhưng sẽ cập nhật text trong render()
-        healthLabel = new Label("Health: " + player.getCurrentHealth(), skin, "default"); // Lấy máu ban đầu
-        hudTable.add(healthLabel).pad(10).row();
+        // --- Health ---
+        healthLabel = new Label("HP:", skin, "default"); // Chỉ còn chữ "HP:"
+        // Giả sử style tên là "default-horizontal" trong uiskin.json
+        // ProgressBar(float min, float max, float stepSize, boolean vertical, ProgressBarStyle style)
+        healthBar = new ProgressBar(0, player.getMaxHealth(), 1, false, skin, "default-horizontal");
+        healthBar.setValue(player.getCurrentHealth());
+        this.healthValueLabel = new Label(player.getCurrentHealth() + "/" + player.getMaxHealth(), skin, "default");
+        // Bạn có thể tùy chỉnh kích thước của ProgressBar
+        // healthBar.getStyle().background.setMinWidth(200); // Ví dụ đặt chiều rộng tối thiểu cho nền
+        // healthBar.getStyle().knob.setMinWidth(190); // Ví dụ cho knob
 
-        manaLabel = new Label("Mana: " + player.getCurrentMana() + "/" + player.getMaxMana(), skin, "default");
-        hudTable.add(manaLabel).padLeft(10).row(); // padLeft để căn với healthLabel nếu ở cùng cột
+        hudTable.add(healthLabel).padRight(5);
+        hudTable.add(healthBar).width(200).height(20).padRight(10); // Đặt kích thước cho thanh máu
+        // Label hiển thị số liệu máu (ví dụ: 100/100)
+        hudTable.add(this.healthValueLabel).row();
 
-        levelLabel = new Label("Level: " + player.getLevel(), skin, "default");
-        hudTable.add(levelLabel).padLeft(10).row();
+        // --- Mana ---
+        manaLabel = new Label("MP:", skin, "default");
+        manaBar = new ProgressBar(0, player.getMaxMana(), 1, false, skin, "default-horizontal");
+        manaBar.setValue(player.getCurrentMana());
+        this.manaValueLabel = new Label(player.getCurrentMana() + "/" + player.getMaxMana(), skin, "default");
+        hudTable.add(manaLabel).padRight(5).padTop(5);
+        hudTable.add(manaBar).width(200).height(20).padRight(10).padTop(5);
+        hudTable.add(this.manaValueLabel).padTop(5).row();
 
-        experienceLabel = new Label("XP: " + player.getExperience() + "/" + player.getExperienceToNextLevel(), skin, "default");
-        hudTable.add(experienceLabel).padLeft(10).row();
-        // hudTable.add(manaLabel).pad(10);
+        // --- Experience & Level ---
+        //levelLabel = new Label("Lv: " + player.getLevel(), skin, "default");
+        experienceBar = new ProgressBar(0, player.getExperienceToNextLevel(), 1, false, skin, "default-horizontal");
+        experienceBar.setValue(player.getExperience());
+        this.experienceValueLabel = new Label(player.getExperience() + "/" + player.getExperienceToNextLevel(), skin, "default");
+
+        //hudTable.add(levelLabel).padTop(10).colspan(1).padRight(5);
+        //hudTable.row(); // Xuống hàng mới cho XP bar
+        hudTable.add(new Label("XP:", skin, "default")).padRight(5).padTop(5); // Label "XP:"
+        hudTable.add(experienceBar).width(200).height(20).padRight(10).padTop(5);
+        hudTable.add(this.experienceValueLabel).padTop(5).row();
 
         hudStage.addActor(hudTable);
+        // Các label experienceLabel, healthLabel, manaLabel (nếu chỉ dùng cho tiêu đề) không cần update text nữa
+        // Chúng ta sẽ update healthValueLabel, manaValueLabel, experienceValueLabel
 
         // --- Thiết lập Inventory UI ---
         setupInventoryUI();
@@ -390,11 +420,22 @@ public class GamePlayScreen implements Screen {
         }
         // gameCamera.update() sẽ được gọi trong render() ngay trước khi vẽ
 
-        // --- Cập nhật HUD Labels ---
-        healthLabel.setText("Health: " + player.getCurrentHealth() + "/" + player.getMaxHealth()); // Thêm maxHealth cho rõ ràng
-        manaLabel.setText("Mana: " + player.getCurrentMana() + "/" + player.getMaxMana());
-        levelLabel.setText("Level: " + player.getLevel());
-        experienceLabel.setText("XP: " + player.getExperience() + "/" + player.getExperienceToNextLevel());
+        // --- Cập nhật HUD ---
+        // Health
+        healthBar.setRange(0, player.getMaxHealth());
+        healthBar.setValue(player.getCurrentHealth());
+        healthValueLabel.setText(player.getCurrentHealth() + "/" + player.getMaxHealth());
+
+        // Mana
+        manaBar.setRange(0, player.getMaxMana());
+        manaBar.setValue(player.getCurrentMana());
+        manaValueLabel.setText(player.getCurrentMana() + "/" + player.getMaxMana());
+
+        // Level & Experience
+        //levelLabel.setText("Lv: " + player.getLevel());
+        experienceBar.setRange(0, player.getExperienceToNextLevel());
+        experienceBar.setValue(player.getExperience());
+        experienceValueLabel.setText(player.getExperience() + "/" + player.getExperienceToNextLevel());
 
         // Tạm thời mô phỏng việc máu thay đổi để test HUD
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
@@ -405,9 +446,6 @@ public class GamePlayScreen implements Screen {
         if (Gdx.input.isKeyJustPressed(Input.Keys.E) && !inventoryVisible) {
             player.addExperience(30); // Cộng 30 XP mỗi lần nhấn E
         }
-
-        // Cập nhật text của healthLabel
-        healthLabel.setText("Health: " + player.getCurrentHealth()); // Dòng này sẽ tự động cập nhật máu sau khi dùng Potion
     }
 
     private void handlePlayerMovement(float delta) {
