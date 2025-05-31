@@ -130,12 +130,12 @@ public class GamePlayScreen implements Screen {
         healthLabel = new Label("HP:", skin, "default"); // Chỉ còn chữ "HP:"
         // Giả sử style tên là "default-horizontal" trong uiskin.json
         // ProgressBar(float min, float max, float stepSize, boolean vertical, ProgressBarStyle style)
-        healthBar = new ProgressBar(0, player.getMaxHealth(), 1, false, skin, "default-horizontal");
+        healthBar = new ProgressBar(0, player.getMaxHealth(), 1, false, skin, "health-bar-style");
         healthBar.setValue(player.getCurrentHealth());
         this.healthValueLabel = new Label(player.getCurrentHealth() + "/" + player.getMaxHealth(), skin, "default");
         // Bạn có thể tùy chỉnh kích thước của ProgressBar
         // healthBar.getStyle().background.setMinWidth(200); // Ví dụ đặt chiều rộng tối thiểu cho nền
-        // healthBar.getStyle().knob.setMinWidth(190); // Ví dụ cho knob
+        //healthBar.getStyle().knob.setMinWidth(190); // Ví dụ cho knob
 
         hudTable.add(healthLabel).padRight(5);
         hudTable.add(healthBar).width(200).height(20).padRight(10); // Đặt kích thước cho thanh máu
@@ -144,7 +144,7 @@ public class GamePlayScreen implements Screen {
 
         // --- Mana ---
         manaLabel = new Label("MP:", skin, "default");
-        manaBar = new ProgressBar(0, player.getMaxMana(), 1, false, skin, "default-horizontal");
+        manaBar = new ProgressBar(0, player.getMaxMana(), 1, false, skin, "mana-bar-style");
         manaBar.setValue(player.getCurrentMana());
         this.manaValueLabel = new Label(player.getCurrentMana() + "/" + player.getMaxMana(), skin, "default");
         hudTable.add(manaLabel).padRight(5).padTop(5);
@@ -153,7 +153,7 @@ public class GamePlayScreen implements Screen {
 
         // --- Experience & Level ---
         //levelLabel = new Label("Lv: " + player.getLevel(), skin, "default");
-        experienceBar = new ProgressBar(0, player.getExperienceToNextLevel(), 1, false, skin, "default-horizontal");
+        experienceBar = new ProgressBar(0, player.getExperienceToNextLevel(), 1, false, skin, "xp-bar-style");
         experienceBar.setValue(player.getExperience());
         this.experienceValueLabel = new Label(player.getExperience() + "/" + player.getExperienceToNextLevel(), skin, "default");
 

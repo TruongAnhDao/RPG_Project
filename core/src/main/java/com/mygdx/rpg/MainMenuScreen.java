@@ -2,6 +2,8 @@ package com.mygdx.rpg; // Hoặc package của bạn
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -28,11 +30,36 @@ public class MainMenuScreen implements Screen {
     private Texture settingsIconTexture; 
     private Texture exitIconTexture;
     private Texture startIconTexture; // Khai báo Texture cho icon Start Game
+    private Sound clickSound;
+    private Music menuMusic; // Tùy chọn, cho nhạc nền
 
     public MainMenuScreen(final RPGGame game) {
         this.game = game;
         viewport = new ScreenViewport();
         stage = new Stage(viewport, game.batch);
+
+    // --- Tải Âm Thanh ---
+    try {
+        // Thay "sounds/button_click.wav" bằng đường dẫn và tên file đúng của bạn
+        clickSound = Gdx.audio.newSound(Gdx.files.internal("sounds/button_click.ogg"));
+    } catch (Exception e) {
+        Gdx.app.error("MainMenuScreen", "Couldn't load click sound", e);
+        clickSound = null; // Để tránh NullPointerException nếu không tải được
+    }
+
+    // --- (Tùy chọn) Tải và Phát Nhạc Nền ---
+    try {
+        // Thay "music/menu_background.ogg" bằng đường dẫn và tên file đúng của bạn
+        menuMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/menu_background.ogg"));
+        if (menuMusic != null) {
+            menuMusic.setLooping(true); // Cho nhạc lặp lại
+            menuMusic.setVolume(0.5f);  // Điều chỉnh âm lượng (0.0f đến 1.0f)
+            // menuMusic.play(); // Sẽ play trong phương thức show()
+        }
+    } catch (Exception e) {
+        Gdx.app.error("MainMenuScreen", "Couldn't load menu music", e);
+        menuMusic = null;
+    }
 
         // Load background texture
         try {
@@ -91,6 +118,9 @@ public class MainMenuScreen implements Screen {
             startImageButton.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
+                    if (clickSound != null) {
+                    clickSound.play(); // Phát âm thanh click
+                    }
                     Gdx.app.log("MainMenuScreen", "Start Game ImageButton clicked");
                     game.setScreen(new GamePlayScreen(game)); 
                     dispose();
@@ -110,6 +140,9 @@ public class MainMenuScreen implements Screen {
             optionsButton.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
+                    if (clickSound != null) {
+                    clickSound.play();
+                    }
                     Gdx.app.log("MainMenuScreen", "Options ImageButton clicked");
                     // TODO: Implement Options Screen logic here
                 }
@@ -126,6 +159,9 @@ public class MainMenuScreen implements Screen {
             exitImageButton.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
+                    if (clickSound != null) {
+                        clickSound.play();
+                    }
                     Gdx.app.log("MainMenuScreen", "Exit ImageButton clicked");
                     Gdx.app.exit(); 
                 }
@@ -182,6 +218,9 @@ public class MainMenuScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        if (menuMusic != null && !menuMusic.isPlaying()) { // Chỉ phát nếu chưa phát
+        menuMusic.play();
+        }
     }
 
     @Override
@@ -211,7 +250,14 @@ public class MainMenuScreen implements Screen {
     public void resume() {}
 
     @Override
-    public void hide() {}
+    public void hide() {
+        // Được gọi khi màn hình này không còn là màn hình hiện tại nữa
+        if (menuMusic != null && menuMusic.isPlaying()) {
+            menuMusic.stop(); // Dừng nhạc khi chuyển sang màn hình khác
+                        // Hoặc menuMusic.pause(); nếu bạn muốn có thể resume
+        }
+        // Không cần Gdx.input.setInputProcessor(null); nếu screen tiếp theo sẽ set processor của nó.
+    }
 
     @Override
     public void dispose() {
@@ -222,5 +268,11 @@ public class MainMenuScreen implements Screen {
         if (settingsIconTexture != null) settingsIconTexture.dispose();
         if (exitIconTexture != null) exitIconTexture.dispose();
         if (startIconTexture != null) startIconTexture.dispose(); // Giải phóng texture của icon Start
+        if (clickSound != null) {
+            clickSound.dispose();
+        }
+        if (menuMusic != null) {
+            menuMusic.dispose();
+        }
     }
 }

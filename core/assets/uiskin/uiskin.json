@@ -14,10 +14,38 @@
   vis-red: {a: 1, b: 0.047, g: 0, r: 0.862 },
   menuitem: {a: 1, b: 0.65, g: 0.65, r: 0.65 },
   link-label: {a: 1, b: 0.886, g: 0.631, r: 0.105 }
+  "myProgressBarBackground": { "r": 0.25, "g": 0.25, "b": 0.25, "a": 1 }, // Xám đậm cho nền
+  "myHealthColor": { "r": 1, "g": 0, "b": 0, "a": 1 },          // Đỏ cho máu
+  "myManaColor": { "r": 0.2, "g": 0.4, "b": 1, "a": 1 },        // Xanh dương cho mana
+  "myXpColor": { "r": 1, "g": 0.85, "b": 0, "a": 1 } 
 },
+
   com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
   dialogDim: {name: white, color: {r: 0, g: 0, b: 0, a: 0.45} }
+
+  // --- THÊM CÁC DRAWABLE MỚI CHO THANH TIẾN TRÌNH Ở ĐÂY ---
+  "pb_background": {
+    "name": "white",         // Tên region trắng trong atlas của bạn
+    "color": "myProgressBarBackground", // Tham chiếu đến màu đã định nghĩa ở trên
+    "minHeight": 18          // Chiều cao mong muốn cho nền
+  },
+  "pb_knob_health": {
+    "name": "white",
+    "color": "myHealthColor",
+    "minHeight": 16          // Knob có thể hơi thấp hơn nền một chút
+  },
+  "pb_knob_mana": {
+    "name": "white",
+    "color": "myManaColor",
+    "minHeight": 16
+  },
+  "pb_knob_xp": {
+    "name": "white",
+    "color": "myXpColor",
+    "minHeight": 14          // Thanh XP có thể mỏng hơn
+  }
 },
+
   com.badlogic.gdx.scenes.scene2d.ui.Button$ButtonStyle: {
   default: {down: button-down, up: button },
   blue: {down: button-blue-down, up: button-blue },
@@ -58,6 +86,20 @@
   com.badlogic.gdx.scenes.scene2d.ui.ProgressBar$ProgressBarStyle: {
   default-horizontal: {background: progressbar, knob: progressbar-filled, knobBefore: progressbar-filled },
   default-vertical: {background: progressbar-vertical, knob: progressbar-filled-vertical, knobBefore: progressbar-filled-vertical }
+
+  // --- THÊM CÁC STYLE MỚI ---
+  "health-bar-style": {
+      "background": "pb_background", 
+      "knobBefore": "pb_knob_health"          
+  },
+  "mana-bar-style": {
+      "background": "pb_background",
+      "knobBefore": "pb_knob_mana"
+  },
+  "xp-bar-style": {
+      "background": "pb_background",
+      "knobBefore": "pb_knob_xp"
+  }
 },
   com.badlogic.gdx.scenes.scene2d.ui.Slider$SliderStyle: {
   default-horizontal: {background: slider, knob: slider-knob, knobOver: slider-knob-over, knobDown: slider-knob-down, disabledKnob: slider-knob-disabled },
