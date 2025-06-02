@@ -9,6 +9,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -71,6 +72,7 @@ public class GamePlayScreen implements Screen {
     private boolean movingDown = false;
     private boolean movingLeft = false;
     private boolean movingRight = false;
+    private boolean playerAttackRequested = false; // Cờ cho yêu cầu tấn công
 
 
     public GamePlayScreen(final RPGGame game) {
@@ -406,7 +408,9 @@ public class GamePlayScreen implements Screen {
     // Hàm cập nhật logic game (ví dụ)
     private void updateGame(float delta) {
         // Di chuyển nhân vật, cập nhật AI, xử lý va chạm, v.v.
-        // Ví dụ: player.update(delta);
+        player.update(delta, movingUp, movingDown, movingLeft, movingRight, playerAttackRequested);
+        playerAttackRequested = false; // Reset cờ sau khi đã truyền đi, để chỉ tấn công 1 lần mỗi lần nhấn
+
         handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
         // Vị trí player.x, player.y được cập nhật ở đây
 
@@ -530,14 +534,15 @@ public class GamePlayScreen implements Screen {
         game.batch.setProjectionMatrix(gameCamera.combined); // Áp dụng ma trận chiếu của camera cho SpriteBatch
         // --- Vẽ thế giới game (sẽ di chuyển theo camera) ---
         game.batch.begin();
-
-        // Vẽ nhân vật (ví dụ đơn giản)
-        float Width = 80;
-        float Height = 80;
-        if (playerTexture != null) {
-            // Bạn sẽ cần có vị trí x, y cho player
-            // ví dụ player.getX(), player.getY()
-            game.batch.draw(playerTexture, player.getX() - Width / 2f, player.getY() - Height / 2f, Width, Height);
+        // --- Vẽ Player bằng currentFrame ---
+        if (player != null && player.getCurrentFrame() != null) {
+            TextureRegion frame = player.getCurrentFrame();
+            // Vẽ frame tại vị trí player, căn giữa frame
+            game.batch.draw(frame,
+                            player.getX() - PlayerCharacter.FRAME_WIDTH / 2f,
+                            player.getY() - PlayerCharacter.FRAME_HEIGHT / 2f,
+                            PlayerCharacter.FRAME_WIDTH,
+                            PlayerCharacter.FRAME_HEIGHT);
         }
         // Vẽ các entities khác ở đây
         game.batch.end();
@@ -583,8 +588,8 @@ public class GamePlayScreen implements Screen {
         if (skin != null) {
             skin.dispose();
         }
-        if (playerTexture != null) {
-            playerTexture.dispose();
+        if (player != null) {
+            player.dispose(); // Gọi dispose của player để giải phóng texture animation
         }
         if (tiledMap != null) {
             tiledMap.dispose();
@@ -645,6 +650,14 @@ public class GamePlayScreen implements Screen {
                     keyProcessed = false; // Nếu không phải phím chúng ta quan tâm, đánh dấu là chưa xử lý
                     break;
             }
+
+            if (keycode == Input.Keys.J) {
+                if (!inventoryVisible) { // Chỉ tấn công khi không ở trong inventory
+                    playerAttackRequested = true;
+                    keyProcessed = true; // Đánh dấu phím đã được xử lý
+                }
+            }
+
             Gdx.app.log("GameInputAdapter", "Key Down: " + Input.Keys.toString(keycode)); // Có thể giữ lại để debug
             return keyProcessed; // Trả về true nếu là phím di chuyển hoặc ESC/F5
         }

@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.Array;
 
 public class PlayerCharacter extends Character {
     private List<Item> inventory;
@@ -14,6 +18,28 @@ public class PlayerCharacter extends Character {
     private int experience;
     private int level;
     private int experienceToNextLevel;
+
+    // --- Thêm các biến cho Animation ---
+    public enum PlayerState { IDLE, WALKING, ATTACKING }
+    public enum Facing { LEFT, RIGHT }
+
+    private PlayerState currentState;
+    private Facing currentFacing;
+    private float stateTime; // Thời gian đã trôi qua trong trạng thái hiện tại, dùng cho animation
+
+    private Animation<TextureRegion> runAnimation;
+    private Animation<TextureRegion> idleAnimation;
+    private Animation<TextureRegion> attackAnimation; 
+
+    private TextureRegion currentFrame; // Khung hình hiện tại để vẽ
+
+    // Kích thước của một frame (quan trọng cho việc vẽ và cắt sprite sheet)
+    public static final int FRAME_WIDTH = 80;
+    public static final int FRAME_HEIGHT = 80;
+
+    private Texture runSheet;
+    private Texture idleSheet;
+    private Texture attackSheet;
 
     public PlayerCharacter(String name) {
         super(name, 1, 100, 10, 5, 5);
@@ -28,6 +54,168 @@ public class PlayerCharacter extends Character {
         this.y = Gdx.graphics.getHeight() / 2f ;
 
         gold = 0;
+
+        this.currentState = PlayerState.IDLE;
+        this.currentFacing = Facing.RIGHT; // Mặc định quay phải
+        this.stateTime = 0f;
+        loadAnimations();
+        // Đặt currentFrame ban đầu
+        if (idleAnimation != null) {
+            this.currentFrame = idleAnimation.getKeyFrame(0f);
+            // Nếu mặc định là Facing.LEFT, thì flip ngay từ đầu
+            // if (currentFacing == Facing.LEFT && currentFrame != null && !currentFrame.isFlipX()) {
+            //    currentFrame.flip(true, false);
+            // }
+        }
+    }
+
+    private void loadAnimations() {
+        float frameDuration = 0.15f;
+        int numberOfFrames = 4;
+
+        try {
+            // Tải các sprite sheet cho hướng mặc định (ví dụ: hướng phải)
+            runSheet = new Texture(Gdx.files.internal("character/Wukong_anim_run.png")); 
+            idleSheet = new Texture(Gdx.files.internal("character/Wukong_anim_idle.png"));   
+            attackSheet = new Texture(Gdx.files.internal("character/Wukong_anim_attack.png"));
+        } catch (Exception e) {
+            Gdx.app.error("PlayerCharacter", "Error loading animation sheets", e);
+            return;
+        }
+
+        // Tạo Animation Chạy 
+        if (runSheet != null) {
+            TextureRegion[][] tmpFramesRun = TextureRegion.split(runSheet, FRAME_WIDTH, FRAME_HEIGHT);
+            Array<TextureRegion> runFrames = new Array<>(numberOfFrames);
+            for (int i = 0; i < numberOfFrames; i++) {
+                runFrames.add(tmpFramesRun[0][i]);
+            }
+            runAnimation = new Animation<>(frameDuration, runFrames, Animation.PlayMode.LOOP);
+        }
+
+        // Tạo Animation Đứng Yên 
+        if (idleSheet != null) {
+            TextureRegion[][] tmpFramesIdle = TextureRegion.split(idleSheet, FRAME_WIDTH, FRAME_HEIGHT);
+            Array<TextureRegion> idleFrames = new Array<>(numberOfFrames);
+            for (int i = 0; i < numberOfFrames; i++) {
+                idleFrames.add(tmpFramesIdle[0][i]);
+            }
+            idleAnimation = new Animation<>(frameDuration, idleFrames, Animation.PlayMode.LOOP);
+        }
+
+        // Tạo Animation Tấn Công 
+        if (attackSheet != null) {
+            TextureRegion[][] tmpFramesAttack = TextureRegion.split(attackSheet, FRAME_WIDTH, FRAME_HEIGHT);
+            Array<TextureRegion> attackFrames = new Array<>(numberOfFrames);
+            for (int i = 0; i < numberOfFrames; i++) {
+                attackFrames.add(tmpFramesAttack[0][i]);
+            }
+            // Animation.PlayMode.NORMAL nghĩa là animation sẽ không lặp lại
+            attackAnimation = new Animation<>(frameDuration, attackFrames, Animation.PlayMode.NORMAL);
+        }
+    }
+
+    public void update(float delta, boolean movingUp, boolean movingDown, boolean movingLeft, boolean movingRight, boolean attackJustPressed) {
+        PlayerState previousState = currentState;
+        Facing previousFacing = currentFacing;
+
+        // Xử lý input tấn công trước tiên
+        if (attackJustPressed && currentState != PlayerState.ATTACKING) {
+            currentState = PlayerState.ATTACKING;
+            stateTime = 0f; // Reset thời gian animation cho hành động tấn công
+        }
+
+        // Nếu đang tấn công, kiểm tra xem animation đã kết thúc chưa
+        if (currentState == PlayerState.ATTACKING) {
+            stateTime += delta; // Chỉ tăng stateTime cho animation đang chạy
+            if (attackAnimation != null && attackAnimation.isAnimationFinished(stateTime)) {
+                currentState = PlayerState.IDLE; // Quay lại trạng thái đứng yên sau khi tấn công xong
+                // stateTime sẽ được reset ở dưới nếu trạng thái thay đổi
+            }
+        } else { // Không tấn công, xử lý di chuyển/đứng yên
+            stateTime += delta; // Tăng stateTime cho idle/walk
+            if (movingLeft) {
+                currentState = PlayerState.WALKING;
+                currentFacing = Facing.LEFT;
+            } else if (movingRight) {
+                currentState = PlayerState.WALKING;
+                currentFacing = Facing.RIGHT;
+            } else if (movingUp || movingDown) {
+                currentState = PlayerState.WALKING;
+                // currentFacing không đổi
+            } else {
+                currentState = PlayerState.IDLE;
+            }
+        }
+
+        if (previousState != currentState || (currentState != PlayerState.ATTACKING && previousFacing != currentFacing) ) {
+            if (currentState != PlayerState.ATTACKING || previousState == PlayerState.ATTACKING) { //Chỉ reset nếu không phải vừa vào attack
+                 stateTime = 0;
+            }
+        }
+
+        // Chọn animation gốc (luôn là animation hướng phải hoặc hướng mặc định)
+        Animation<TextureRegion> baseAnimation = null;
+        boolean loopAnimation = true;
+
+        switch (currentState) {
+            case IDLE:
+                baseAnimation = idleAnimation;
+                loopAnimation = true;
+                break;
+            case WALKING:
+                baseAnimation = runAnimation;
+                loopAnimation = true;
+                break;
+            case ATTACKING:
+                baseAnimation = attackAnimation;
+                loopAnimation = false; // Animation tấn công không lặp lại
+                break;
+        }
+
+        if (baseAnimation != null) {
+            currentFrame = baseAnimation.getKeyFrame(stateTime, loopAnimation);
+
+            // Lật frame nếu cần (logic này vẫn giữ nguyên)
+            if (currentFacing == Facing.LEFT) {
+                if (currentFrame != null && !currentFrame.isFlipX()) {
+                    currentFrame.flip(true, false);
+                }
+            } else { // currentFacing == Facing.RIGHT
+                if (currentFrame != null && currentFrame.isFlipX()) {
+                    currentFrame.flip(true, false);
+                }
+            }
+        } else if (currentFrame == null && idleAnimation != null) { // Fallback an toàn
+             currentFrame = idleAnimation.getKeyFrame(0f);
+             if (currentFacing == Facing.LEFT && currentFrame != null && !currentFrame.isFlipX()) {
+                 currentFrame.flip(true, false);
+             }
+        }
+    }
+
+    public TextureRegion getCurrentFrame() {
+        // Xử lý fallback nếu currentFrame vẫn là null
+        if (currentFrame == null) {
+            if (idleAnimation != null) {
+                TextureRegion defaultFrame = idleAnimation.getKeyFrame(0f);
+                if (currentFacing == Facing.LEFT && !defaultFrame.isFlipX()) {
+                    defaultFrame.flip(true, false); // Cẩn thận: thay đổi frame trong animation
+                } else if (currentFacing == Facing.RIGHT && defaultFrame.isFlipX()){
+                    defaultFrame.flip(true, false);
+                }
+                return defaultFrame;
+            }
+            return null; // Hoặc một texture mặc định
+        }
+        return currentFrame;
+    }
+
+    public void dispose() {
+        Gdx.app.log("PlayerCharacter", "Disposing player resources");
+        if (runSheet != null) runSheet.dispose();
+        if (idleSheet != null) idleSheet.dispose();
+        if (attackSheet != null) attackSheet.dispose();
     }
 
     private void configureStatsForLevel() {
