@@ -54,6 +54,7 @@ public class GamePlayScreen implements Screen {
     private Texture playerTexture;
     private TiledMap tiledMap;
     private OrthogonalTiledMapRenderer tiledMapRenderer;
+    public static final float DEFAULT_CAMERA_ZOOM = 0.3f;
 
     private InputMultiplexer inputMultiplexer; // Để xử lý nhiều nguồn input
 
@@ -88,6 +89,7 @@ public class GamePlayScreen implements Screen {
         gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
         gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
         gameViewport.apply();
+        gameCamera.zoom = DEFAULT_CAMERA_ZOOM;
 
 
         // 2. Thiết lập Stage và Viewport cho HUD (Giao diện trên màn hình)
@@ -412,13 +414,8 @@ public class GamePlayScreen implements Screen {
         playerAttackRequested = false; // Reset cờ sau khi đã truyền đi, để chỉ tấn công 1 lần mỗi lần nhấn
 
         handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
-        // Vị trí player.x, player.y được cập nhật ở đây
 
         // --- CẬP NHẬT VỊ TRÍ CAMERA ĐỂ THEO SAU NGƯỜI CHƠI ---
-        // Đặt vị trí của gameCamera bằng với vị trí của người chơi
-        // gameCamera.position.x = player.getX();
-        // gameCamera.position.y = player.getY();
-        // Hoặc ngắn gọn hơn:
         if (player != null) { // Đảm bảo player đã được khởi tạo
              gameCamera.position.set(player.getX(), player.getY(), 0); // z = 0 cho 2D
         }
@@ -522,6 +519,7 @@ public class GamePlayScreen implements Screen {
 
         // --- CẬP NHẬT VÀ ÁP DỤNG GAME CAMERA ---
         gameCamera.update(); // Rất quan trọng: Cập nhật camera sau khi đã thay đổi vị trí (hoặc các thuộc tính khác)
+        game.batch.setProjectionMatrix(gameCamera.combined); // Áp dụng cho SpriteBatch
 
         // --- Vẽ TileMap ---
         if (tiledMapRenderer != null) {
