@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.2" name="map_3" tilewidth="16" tileheight="16" tilecount="528" columns="22">
- <image source="Tiles.png" width="352" height="384"/>
+<tileset version="1.10" tiledversion="1.11.2" name="map_3" tilewidth="8" tileheight="8" tilecount="9984" columns="104">
+ <image source="MainLev2.0.png" width="833" height="768"/>
 </tileset>
