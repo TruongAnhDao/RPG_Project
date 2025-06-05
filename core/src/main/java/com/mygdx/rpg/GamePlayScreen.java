@@ -1,5 +1,6 @@
 package com.mygdx.rpg;
 
+import java.util.ArrayList;
 import java.util.List;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter; 
@@ -27,6 +28,9 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;     // Cho ClickListener
 import com.badlogic.gdx.maps.tiled.TiledMap;                         // Thêm import
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      // Thêm import
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer; // Thêm import (nếu map là orthogonal)
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Rectangle;
+
 
 public class GamePlayScreen implements Screen {
 
@@ -49,6 +53,11 @@ public class GamePlayScreen implements Screen {
     private ProgressBar manaBar;
     private ProgressBar experienceBar;
     private Label healthValueLabel, manaValueLabel, experienceValueLabel; // Các label giá trị
+
+    private Texture enemyTexture;    // Texture dùng để vẽ enemy
+    private Enemy enemy;             // Đối tượng logic của Enemy
+    private float enemyX, enemyY;    // Tọa độ hiện tại của Enemy
+
 
     // Ví dụ: Texture cho nền game hoặc nhân vật
     private Texture playerTexture;
@@ -117,6 +126,21 @@ public class GamePlayScreen implements Screen {
         player.addItem(new Item("Mana Potion", "Consumable", "Restores 30 MP", 3, 5)); // 3 Mana Potion, stack tối đa 5
         player.addItem(new Item("Arrow", "Ammo", "Standard arrow.", 20, 50)); // 20 mũi tên, stack 50
         player.addItem(new Item("Arrow", "Ammo", "Standard arrow.", 15, 50)); // Thêm 15 mũi tên nữa
+
+        // khởi tạo enemy
+        enemyTexture = new Texture(Gdx.files.internal("PlayScreen/enemy.png"));
+
+        // Tạo danh sách items tạm để Enemy drop
+        List<Item> drops = new ArrayList<>();
+        drops.add(new Item("Potion", "HP Potion", 10));
+
+        // Khởi tạo Enemy với các thông số tùy ý
+        // Ví dụ: tên "Goblin", level 1, hp=50, attack=8, defense=3, speed=2
+        enemy = new Enemy("Goblin", 1, 50, 8, 3, 2, drops, 20);
+
+        // Đặt vị trí ban đầu cho Enemy (chiều rộng màn hình giả sử 800, chiều cao 480)
+        enemyX = 390;
+        enemyY = 300;
 
         // --- Tải tài nguyên ví dụ ---
         try {
@@ -517,6 +541,20 @@ public class GamePlayScreen implements Screen {
         updateGame(delta);
         handleInput(delta);
 
+        // Cho Enemy di chuyển sang trái theo tốc độ
+        enemyX += enemy.getSpeed() * delta;
+        if (enemyX < 0) {
+            enemyX = 0;
+        }
+
+        // Tạo Rectangle để kiểm tra va chạm giữa player và enemy
+        Rectangle playerRect = new Rectangle(player.x, player.y, 64, 64);
+        Rectangle enemyRect  = new Rectangle(enemyX, enemyY, 64, 64);
+        if (playerRect.overlaps(enemyRect) && enemy.isAlive()) {
+            enemy.attackPlayer(player);
+        }
+
+
         // --- CẬP NHẬT VÀ ÁP DỤNG GAME CAMERA ---
         gameCamera.update(); // Rất quan trọng: Cập nhật camera sau khi đã thay đổi vị trí (hoặc các thuộc tính khác)
         game.batch.setProjectionMatrix(gameCamera.combined); // Áp dụng cho SpriteBatch
@@ -542,10 +580,16 @@ public class GamePlayScreen implements Screen {
                             PlayerCharacter.FRAME_WIDTH,
                             PlayerCharacter.FRAME_HEIGHT);
         }
+        // Sau khi cập nhật enemyX (nếu bạn đã dùng += hoặc -=), gọi draw ở đây:
+    if (enemy != null && enemy.isAlive()) {
+        game.batch.draw(enemyTexture,
+                        enemyX,
+                        enemyY);
+    }
         // Vẽ các entities khác ở đây
         game.batch.end();
 
-
+        
         // 3. Cập nhật và Vẽ HUD
         // hudViewport.apply(); // Không cần gọi nếu hudStage tự quản lý batch và viewport
         hudStage.act(Math.min(delta, 1 / 30f));
@@ -589,6 +633,11 @@ public class GamePlayScreen implements Screen {
         if (player != null) {
             player.dispose(); // Gọi dispose của player để giải phóng texture animation
         }
+
+        if (enemyTexture != null) {
+            enemyTexture.dispose(); // gọi dispose của enemy
+        }
+
         if (tiledMap != null) {
             tiledMap.dispose();
         }

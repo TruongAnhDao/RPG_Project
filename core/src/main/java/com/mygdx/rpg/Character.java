@@ -14,6 +14,7 @@ public class Character {
     public Character(String name, int level, int maxhp, int attack, int defense, float speed) {
         this.name = name;
         this.level = level;
+        this.maxhp = maxhp;
         this.hp = this.maxhp;
         this.attack = attack;
         this.defense = defense;
@@ -46,6 +47,20 @@ public class Character {
         hp -= damage;
         //if (hp < 0) hp = 0;
         System.out.println(name + " takes " + damage + " damage. Remaining HP: " + hp);
+        if (hp <= 0) {
+            hp = 0;
+            die();
+        }
+    }  
+
+    // check xem nv còn sống ko
+    public boolean isAlive() {
+        return hp > 0;
+    }
+
+    public void die() {
+        System.out.println(name + " has died.");
+        // Nếu muốn, có thể thêm logic như: set trạng thái isDead = true, chơi hiệu ứng, v.v.
     }
 
     public void setCurrentHealth(int health) { // Cần thiết nếu muốn reset máu
