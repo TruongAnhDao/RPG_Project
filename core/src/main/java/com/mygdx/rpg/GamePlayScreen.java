@@ -19,14 +19,16 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import com.badlogic.gdx.scenes.scene2d.ui.Window; // Cho cửa sổ inventory
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; // Để cuộn danh sách item
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton; // Có thể dùng để tương tác với item sau này
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; // Cho nút đóng
-import com.badlogic.gdx.scenes.scene2d.InputEvent;     // Cho ClickListener
-import com.badlogic.gdx.maps.tiled.TiledMap;                         // Thêm import
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      // Thêm import
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer; // Thêm import (nếu map là orthogonal)
+import com.badlogic.gdx.scenes.scene2d.ui.Window; 
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; 
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton; 
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; 
+import com.badlogic.gdx.scenes.scene2d.InputEvent;    
+import com.badlogic.gdx.maps.tiled.TiledMap;                         
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.maps.MapProperties;
+import com.badlogic.gdx.math.MathUtils; 
 
 public class GamePlayScreen implements Screen {
 
@@ -55,6 +57,8 @@ public class GamePlayScreen implements Screen {
     private TiledMap tiledMap;
     private OrthogonalTiledMapRenderer tiledMapRenderer;
     public static final float DEFAULT_CAMERA_ZOOM = 0.3f;
+    private float mapPixelWidth;
+    private float mapPixelHeight;
 
     private InputMultiplexer inputMultiplexer; // Để xử lý nhiều nguồn input
 
@@ -85,10 +89,9 @@ public class GamePlayScreen implements Screen {
         // Bạn có thể điều chỉnh WORLD_WIDTH, WORLD_HEIGHT theo kích thước thế giới game mong muốn
         float WORLD_WIDTH = 800; // Ví dụ
         float WORLD_HEIGHT = 480; // Ví dụ
-        // gameViewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, gameCamera);
         gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
-        gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
-        gameViewport.apply();
+        //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
+        //gameViewport.apply();
         gameCamera.zoom = DEFAULT_CAMERA_ZOOM;
 
 
@@ -197,6 +200,23 @@ public class GamePlayScreen implements Screen {
         inputMultiplexer.addProcessor(new GameInputAdapter()); // Thêm bộ xử lý input cho game world
 
         Gdx.app.log("GamePlayScreen", "GamePlayScreen created");
+
+        // --- Tải TileMap và lấy kích thước ---
+        if (tiledMap != null) { // Đảm bảo tiledMap đã được tải thành công
+            MapProperties prop = tiledMap.getProperties();
+            int mapWidthInTiles = prop.get("width", Integer.class);
+            int mapHeightInTiles = prop.get("height", Integer.class);
+            int tilePixelWidth = prop.get("tilewidth", Integer.class);
+            int tilePixelHeight = prop.get("tileheight", Integer.class);
+
+            this.mapPixelWidth = mapWidthInTiles * tilePixelWidth * 3;
+            this.mapPixelHeight = mapHeightInTiles * tilePixelHeight * 3;
+            Gdx.app.log("GamePlayScreen", "Map dimensions: " + mapPixelWidth + "x" + mapPixelHeight + " pixels");
+        } else {
+            // Đặt giá trị mặc định hoặc xử lý nếu map không tải được
+            this.mapPixelWidth = Gdx.graphics.getWidth(); // Hoặc một giá trị an toàn khác
+            this.mapPixelHeight = Gdx.graphics.getHeight();
+        }
     }
 
     private void setupInventoryUI() {
@@ -419,6 +439,56 @@ public class GamePlayScreen implements Screen {
         if (player != null) { // Đảm bảo player đã được khởi tạo
              gameCamera.position.set(player.getX(), player.getY(), 0); // z = 0 cho 2D
         }
+
+        // --- Giới hạn Camera trong phạm vi Map ---
+        if (tiledMap != null) { // Chỉ giới hạn nếu có map
+            // Tính toán kích thước thực tế của vùng nhìn thấy qua camera (đã tính zoom)
+            float cameraHalfWidth = gameCamera.viewportWidth * gameCamera.zoom / 2f;
+            float cameraHalfHeight = gameCamera.viewportHeight * gameCamera.zoom / 2f;
+
+            float effectiveViewportWidth = cameraHalfWidth * 2;
+            float effectiveViewportHeight = cameraHalfHeight * 2;
+
+            // Tính toán giới hạn cho tâm của camera
+            float minCameraX = cameraHalfWidth;
+            float maxCameraX = mapPixelWidth - cameraHalfWidth;
+            float minCameraY = cameraHalfHeight;
+            float maxCameraY = mapPixelHeight - cameraHalfHeight;
+
+            // === THÊM LOGGING Ở ĐÂY ===
+            if (Gdx.input.isKeyJustPressed(Input.Keys.L)) { // Ví dụ: nhấn L để log, tránh spam console
+                Gdx.app.log("CameraDebug", "------------------------------------");
+                Gdx.app.log("CameraDebug", "Map (Px): " + mapPixelWidth + "x" + mapPixelHeight);
+                Gdx.app.log("CameraDebug", "CamVP (Raw): " + gameCamera.viewportWidth + "x" + gameCamera.viewportHeight + ", Zoom: " + gameCamera.zoom);
+                Gdx.app.log("CameraDebug", "CamVP (Effective): " + effectiveViewportWidth + "x" + effectiveViewportHeight);
+                Gdx.app.log("CameraDebug", "Player Pos: " + player.getX() + ", " + player.getY());
+                Gdx.app.log("CameraDebug", "Cam Target Pos: " + gameCamera.position.x + ", " + gameCamera.position.y);
+                Gdx.app.log("CameraDebug", "Cam X Bounds: [" + minCameraX + ", " + maxCameraX + "]");
+                Gdx.app.log("CameraDebug", "Cam Y Bounds: [" + minCameraY + ", " + maxCameraY + "]");
+            }
+
+            // Giới hạn vị trí X của camera
+            // Đảm bảo rằng map luôn lớn hơn hoặc bằng kích thước viewport của camera
+            if (mapPixelWidth > effectiveViewportWidth) {
+                gameCamera.position.x = MathUtils.clamp(gameCamera.position.x, minCameraX, maxCameraX);
+            } else {
+                gameCamera.position.x = mapPixelWidth / 2f;
+            }
+
+            if (mapPixelHeight > effectiveViewportHeight) {
+                gameCamera.position.y = MathUtils.clamp(gameCamera.position.y, minCameraY, maxCameraY);
+            } else {
+                gameCamera.position.y = mapPixelHeight / 2f;
+            }
+
+            // === THÊM LOGGING Ở ĐÂY ===
+            if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
+                Gdx.app.log("CameraDebug", "Cam Final Pos: " + gameCamera.position.x + ", " + gameCamera.position.y);
+                Gdx.app.log("CameraDebug", "------------------------------------");
+            }
+           // ==========================
+        }
+
         // gameCamera.update() sẽ được gọi trong render() ngay trước khi vẽ
 
         // --- Cập nhật HUD ---
@@ -528,8 +598,6 @@ public class GamePlayScreen implements Screen {
         }
 
         // --- Vẽ các đối tượng game khác (Player, Enemies, Items trên đất, v.v.) ---
-        // Đảm bảo ma trận chiếu của gameCamera được áp dụng cho batch vẽ sprite
-        game.batch.setProjectionMatrix(gameCamera.combined); // Áp dụng ma trận chiếu của camera cho SpriteBatch
         // --- Vẽ thế giới game (sẽ di chuyển theo camera) ---
         game.batch.begin();
         // --- Vẽ Player bằng currentFrame ---
@@ -557,9 +625,9 @@ public class GamePlayScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         Gdx.app.log("GamePlayScreen", "Resizing to: " + width + "x" + height);
-        gameViewport.update(width, height, true); // Cập nhật viewport của game, true để căn giữa camera
+        gameViewport.update(width, height, false); // Cập nhật viewport của game, true để căn giữa camera
         hudViewport.update(width, height, true);  // Cập nhật viewport của HUD
-        gameCamera.setToOrtho(false, width, height); // Cập nhật camera nếu không dùng FitViewport/ExtendViewport cho game world
+        //gameCamera.setToOrtho(false, width, height); // Cập nhật camera nếu không dùng FitViewport/ExtendViewport cho game world
                                                      // Nếu dùng FitViewport/ExtendViewport thì gameCamera.update() là đủ
     }
 
