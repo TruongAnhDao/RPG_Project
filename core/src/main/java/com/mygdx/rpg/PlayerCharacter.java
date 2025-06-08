@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.math.Rectangle;
 
 public class PlayerCharacter extends Character {
     private List<Item> inventory;
@@ -18,6 +19,7 @@ public class PlayerCharacter extends Character {
     private int experience;
     private int level;
     private int experienceToNextLevel;
+    private Rectangle boundingBox; // Hộp va chạm của người chơi
 
     // --- Thêm các biến cho Animation ---
     public enum PlayerState { IDLE, WALKING, ATTACKING }
@@ -50,8 +52,8 @@ public class PlayerCharacter extends Character {
         this.speed = 200f;
 
         this.inventory = new ArrayList<>(); // Khởi tạo hành trang rỗng
-        this.x = Gdx.graphics.getWidth() / 2f ; // Vị trí ban đầu ví dụ
-        this.y = Gdx.graphics.getHeight() / 2f ;
+        this.x = 700f;
+        this.y = 530f;
 
         gold = 0;
 
@@ -67,6 +69,32 @@ public class PlayerCharacter extends Character {
             //    currentFrame.flip(true, false);
             // }
         }
+
+        // Khởi tạo bounding box
+        // Ví dụ: làm cho nó nhỏ hơn kích thước frame một chút và ở dưới chân nhân vật
+        float boxWidth = FRAME_WIDTH * 0.5f;   // Rộng bằng 50% ảnh
+        float boxHeight = FRAME_HEIGHT * 0.4f; // Cao bằng 40% ảnh
+        this.boundingBox = new Rectangle();
+        this.boundingBox.width = boxWidth;
+        this.boundingBox.height = boxHeight;
+        // Vị trí của bounding box sẽ được cập nhật liên tục theo vị trí của player
+        updateBoundingBox();
+    }
+
+    public void updateBoundingBox() {
+        // Căn giữa bounding box theo chiều ngang với tâm của player
+        // và đặt nó ở dưới chân player
+        float boxX = x - boundingBox.width / 2f;
+        float boxY = y - FRAME_HEIGHT / 2f; // Đặt bounding box ở dưới cùng của sprite
+        boundingBox.setPosition(boxX, boxY);
+    }
+
+    public Rectangle getBoundingBox() {
+        return boundingBox;
+    }
+
+    public PlayerState getCurrentState() {
+    return currentState;
     }
 
     private void loadAnimations() {

@@ -29,6 +29,9 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.math.MathUtils; 
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
+import com.badlogic.gdx.math.Rectangle;
 
 public class GamePlayScreen implements Screen {
 
@@ -59,6 +62,9 @@ public class GamePlayScreen implements Screen {
     public static final float DEFAULT_CAMERA_ZOOM = 0.3f;
     private float mapPixelWidth;
     private float mapPixelHeight;
+    private TiledMapTileLayer collisionLayer; 
+    private int tilePixelWidth;
+    private int tilePixelHeight;
 
     private InputMultiplexer inputMultiplexer; // Để xử lý nhiều nguồn input
 
@@ -217,6 +223,31 @@ public class GamePlayScreen implements Screen {
             this.mapPixelWidth = Gdx.graphics.getWidth(); // Hoặc một giá trị an toàn khác
             this.mapPixelHeight = Gdx.graphics.getHeight();
         }
+
+        if (tiledMap != null) {
+            // "Tile Layer 2" là tên layer va chạm của bạn
+            // Nếu bạn đổi tên nó, hãy cập nhật ở đây
+            this.collisionLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tile Layer 3");
+            if (collisionLayer == null) {
+                Gdx.app.error("GamePlayScreen", "Collision layer 'Tile Layer 2' not found!");
+            }
+            // Lấy kích thước tile để tính toán tọa độ ô
+            this.tilePixelWidth = tiledMap.getProperties().get("tilewidth", Integer.class) * 3;
+            this.tilePixelHeight = tiledMap.getProperties().get("tileheight", Integer.class) * 3;
+        }
+    }
+
+    private boolean isCellBlocked(float x, float y) {
+        if (collisionLayer == null) return false; // Nếu không có layer va chạm thì không có gì cản cả
+
+        // Chuyển đổi tọa độ pixel của thế giới game sang tọa độ ô (cell) của map
+        int cellX = (int) (x / tilePixelWidth);
+        int cellY = (int) (y / tilePixelHeight);
+
+        TiledMapTileLayer.Cell cell = collisionLayer.getCell(cellX, cellY);
+
+        // Một ô được coi là "cản" nếu nó không rỗng (cell != null) VÀ ô đó chứa một tile (cell.getTile() != null)
+        return cell != null && cell.getTile() != null;
     }
 
     private void setupInventoryUI() {
@@ -529,6 +560,9 @@ public class GamePlayScreen implements Screen {
         float velocityX = 0;
         float velocityY = 0;
 
+        float oldX = player.x;
+        float oldY = player.y;
+
         if (movingUp) {
             velocityY += moveAmount;
         }
@@ -554,14 +588,44 @@ public class GamePlayScreen implements Screen {
             velocityY *= diagonalFactor;
         }
         
-        // Cập nhật vị trí người chơi
-        player.x += velocityX;
-        player.y += velocityY;
+        // --- Kiểm tra va chạm và di chuyển theo trục X ---
+        Rectangle pBox = player.getBoundingBox(); // Lấy bounding box của player
+        pBox.x += velocityX; // Thử di chuyển bounding box theo X
 
-        // (Tùy chọn: Giới hạn vị trí người chơi trong màn hình hoặc trong map)
-        // Ví dụ giới hạn trong màn hình (nếu không có tilemap):
-        // player.x = Math.max(0, Math.min(player.x, Gdx.graphics.getWidth() - playerTexture.getWidth()));
-        // player.y = Math.max(0, Math.min(player.y, Gdx.graphics.getHeight() - playerTexture.getHeight()));
+        // Kiểm tra các điểm trên bounding box sau khi di chuyển theo X
+        // Ví dụ: kiểm tra 2 góc của cạnh sẽ di chuyển tới
+        boolean collisionX = false;
+        if (velocityX > 0) { // Di chuyển sang phải
+            collisionX = isCellBlocked(pBox.x + pBox.width, pBox.y) || isCellBlocked(pBox.x + pBox.width, pBox.y + pBox.height);
+        } else if (velocityX < 0) { // Di chuyển sang trái
+            collisionX = isCellBlocked(pBox.x, pBox.y) || isCellBlocked(pBox.x, pBox.y + pBox.height);
+        }
+
+        if (collisionX) {
+            // Nếu va chạm, không cập nhật player.x
+        } else {
+            player.x += velocityX; // Nếu không va chạm, cập nhật vị trí thật
+        }
+    
+        // --- Kiểm tra va chạm và di chuyển theo trục Y ---
+        pBox.x = player.getBoundingBox().x; // Reset pBox.x về vị trí hiện tại (đã được xác thực)
+        pBox.y += velocityY; // Thử di chuyển bounding box theo Y
+
+        boolean collisionY = false;
+        if (velocityY > 0) { // Di chuyển lên
+            collisionY = isCellBlocked(pBox.x, pBox.y + pBox.height) || isCellBlocked(pBox.x + pBox.width, pBox.y + pBox.height);
+        } else if (velocityY < 0) { // Di chuyển xuống
+            collisionY = isCellBlocked(pBox.x, pBox.y) || isCellBlocked(pBox.x + pBox.width, pBox.y);
+        }
+
+        if (collisionY) {
+            // Nếu va chạm, không cập nhật player.y
+        } else {
+            player.y += velocityY;
+        }
+
+        // Cập nhật lại vị trí bounding box cuối cùng
+        player.updateBoundingBox();
     }
 
     private void handleInput(float delta) {
