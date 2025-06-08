@@ -52,7 +52,7 @@ public class PlayerCharacter extends Character {
         this.inventory = new ArrayList<>(); // Khởi tạo hành trang rỗng
         this.x = Gdx.graphics.getWidth() / 2f ; // Vị trí ban đầu ví dụ
         this.y = Gdx.graphics.getHeight() / 2f ;
-
+        
         gold = 0;
 
         this.currentState = PlayerState.IDLE;

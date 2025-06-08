@@ -43,6 +43,7 @@ public class GamePlayScreen implements Screen {
 
     // Các đối tượng game
     private PlayerCharacter player; // Đối tượng người chơi
+    private Enemy enemy;
     private Label healthLabel;      // Label để hiển thị máu
     private Label manaLabel;
     private Label levelLabel;
@@ -110,6 +111,9 @@ public class GamePlayScreen implements Screen {
         // --- Khởi tạo đối tượng game ---
         player = new PlayerCharacter("Hero"); // Tạo nhân vật
         // player.setHealth(100); // Nếu cần thiết lập máu ban đầu qua setter
+
+        // khởi tạo enemy
+        enemy = new Enemy("Goblin", 1, 50, 10, 5, 1.5f, java.util.Collections.emptyList(), 20, PlayerCharacter.getX(), PlayerCharacter.getY());
 
         // Thêm item mẫu vào hành trang của người chơi để test
         // Item(String name, String type, String description, int initialQuantity, int maxStackSize)
@@ -610,6 +614,10 @@ public class GamePlayScreen implements Screen {
                             PlayerCharacter.FRAME_WIDTH,
                             PlayerCharacter.FRAME_HEIGHT);
         }
+        if (enemy != null){
+            Gdx.app.log("GamePlayScreen", "About to call enemy.render()"); 
+            enemy.render(game.batch);
+        }
         // Vẽ các entities khác ở đây
         game.batch.end();
 
@@ -656,6 +664,9 @@ public class GamePlayScreen implements Screen {
         }
         if (player != null) {
             player.dispose(); // Gọi dispose của player để giải phóng texture animation
+        }
+        if (enemy != null){
+            enemy.dispose();
         }
         if (tiledMap != null) {
             tiledMap.dispose();
