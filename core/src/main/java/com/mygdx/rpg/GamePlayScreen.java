@@ -23,6 +23,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.Viewport;
 <<<<<<< HEAD
+<<<<<<< HEAD
 import com.badlogic.gdx.scenes.scene2d.ui.Window; 
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; 
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton; 
@@ -45,6 +46,21 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;     // Cho ClickListener
 import com.badlogic.gdx.maps.tiled.TiledMap;                         // Thêm import
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      // Thêm import
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer; // Thêm import (nếu map là orthogonal)
+=======
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.maps.MapProperties;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
+import com.badlogic.gdx.math.Rectangle;
+>>>>>>> 280dd4a (upd inventory)
 import com.badlogic.gdx.utils.Align;
 >>>>>>> 8764354 (upd inventory UI)
 
@@ -92,7 +108,11 @@ public class GamePlayScreen implements Screen {
     public static final float DEFAULT_CAMERA_ZOOM = 0.3f;
     private float mapPixelWidth;
     private float mapPixelHeight;
+<<<<<<< HEAD
     private TiledMapTileLayer collisionLayer; 
+=======
+    private TiledMapTileLayer collisionLayer;
+>>>>>>> 280dd4a (upd inventory)
     private int tilePixelWidth;
     private int tilePixelHeight;
 
@@ -125,8 +145,14 @@ public class GamePlayScreen implements Screen {
         // Bạn có thể điều chỉnh WORLD_WIDTH, WORLD_HEIGHT theo kích thước thế giới game mong muốn
         float WORLD_WIDTH = 800; // Ví dụ
         float WORLD_HEIGHT = 480; // Ví dụ
+<<<<<<< HEAD
         gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
         //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
+=======
+
+        gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
+        //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầuAdd commentMore actions
+>>>>>>> 280dd4a (upd inventory)
         //gameViewport.apply();
         gameCamera.zoom = DEFAULT_CAMERA_ZOOM;
 
@@ -281,6 +307,44 @@ public class GamePlayScreen implements Screen {
         // Một ô được coi là "cản" nếu nó không rỗng (cell != null) VÀ ô đó chứa một tile (cell.getTile() != null)
         return cell != null && cell.getTile() != null;
     }
+
+
+        // --- Tải TileMap và lấy kích thước ---
+        if (tiledMap != null) { // Đảm bảo tiledMap đã được tải thành công
+            MapProperties prop = tiledMap.getProperties();
+            int mapWidthInTiles = prop.get("width", Integer.class);
+            int mapHeightInTiles = prop.get("height", Integer.class);
+            int tilePixelWidth = prop.get("tilewidth", Integer.class);
+            int tilePixelHeight = prop.get("tileheight", Integer.class);
+
+            this.mapPixelWidth = mapWidthInTiles * tilePixelWidth * 3;
+            this.mapPixelHeight = mapHeightInTiles * tilePixelHeight * 3;
+        }
+
+        if (tiledMap != null) {
+            // "Tile Layer 2" là tên layer va chạm của bạn
+            // Nếu bạn đổi tên nó, hãy cập nhật ở đây
+            this.collisionLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tile Layer 3");
+            if (collisionLayer == null) {
+                Gdx.app.error("GamePlayScreen", "Collision layer 'Tile Layer 2' not found!");
+            }
+            // Lấy kích thước tile để tính toán tọa độ ô
+            this.tilePixelWidth = tiledMap.getProperties().get("tilewidth", Integer.class) * 3;
+            this.tilePixelHeight = tiledMap.getProperties().get("tileheight", Integer.class) * 3;
+        }
+    }
+
+    private boolean isCellBlocked(float x, float y) {
+        if (collisionLayer == null) return false; // Nếu không có layer va chạm thì không có gì cản cả
+
+        // Chuyển đổi tọa độ pixel của thế giới game sang tọa độ ô (cell) của map
+        int cellX = (int) (x / tilePixelWidth);
+        int cellY = (int) (y / tilePixelHeight);
+
+        TiledMapTileLayer.Cell cell = collisionLayer.getCell(cellX, cellY);
+
+        // Một ô được coi là "cản" nếu nó không rỗng (cell != null) VÀ ô đó chứa một tile (cell.getTile() != null)
+        return cell != null && cell.getTile() != null;
 
     private void setupInventoryUI() {
         inventoryWindow = new Window("Inventory", skin); // Tiêu đề cửa sổ
@@ -560,6 +624,10 @@ public class GamePlayScreen implements Screen {
            // ==========================
         }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 280dd4a (upd inventory)
         // gameCamera.update() sẽ được gọi trong render() ngay trước khi vẽ
 
         // --- Cập nhật HUD ---
@@ -632,9 +700,9 @@ public class GamePlayScreen implements Screen {
         Rectangle pBox = player.getBoundingBox(); // Lấy bounding box của player
         pBox.x += velocityX; // Thử di chuyển bounding box theo X
 
-        // Cập nhật vị trí người chơi
-        player.x += velocityX;
-        player.y += velocityY;
+        // --- Kiểm tra va chạm và di chuyển theo trục X ---
+        Rectangle pBox = player.getBoundingBox(); // Lấy bounding box của player
+        pBox.x += velocityX; // Thử di chuyển bounding box theo X
 
         // Kiểm tra các điểm trên bounding box sau khi di chuyển theo X
         // Ví dụ: kiểm tra 2 góc của cạnh sẽ di chuyển tới
@@ -650,7 +718,11 @@ public class GamePlayScreen implements Screen {
         } else {
             player.x += velocityX; // Nếu không va chạm, cập nhật vị trí thật
         }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 280dd4a (upd inventory)
         // --- Kiểm tra va chạm và di chuyển theo trục Y ---
         pBox.x = player.getBoundingBox().x; // Reset pBox.x về vị trí hiện tại (đã được xác thực)
         pBox.y += velocityY; // Thử di chuyển bounding box theo Y
@@ -670,7 +742,11 @@ public class GamePlayScreen implements Screen {
 
         // Cập nhật lại vị trí bounding box cuối cùng
         player.updateBoundingBox();
+<<<<<<< HEAD
     }
+=======
+}
+>>>>>>> 280dd4a (upd inventory)
 
     private void handleInput(float delta) {
         // Ví dụ xử lý input chung cho GamePlayScreen, không thuộc GameInputAdapter
@@ -706,6 +782,7 @@ public class GamePlayScreen implements Screen {
         }
 
         // --- Vẽ các đối tượng game khác (Player, Enemies, Items trên đất, v.v.) ---
+
         // --- Vẽ thế giới game (sẽ di chuyển theo camera) ---
         game.batch.begin();
         // --- Vẽ Player bằng currentFrame ---
@@ -755,7 +832,7 @@ public class GamePlayScreen implements Screen {
             }
         }
         game.batch.end();
-	
+
         // Cập nhật và Vẽ HUD
         // hudViewport.apply(); // Không cần gọi nếu hudStage tự quản lý batch và viewport
         hudStage.act(Math.min(delta, 1 / 30f));

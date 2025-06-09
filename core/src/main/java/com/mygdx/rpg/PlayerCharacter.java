@@ -52,7 +52,11 @@ public class PlayerCharacter extends Character {
         this.speed = 200f;
 
         this.inventory = new ArrayList<>(); // Khởi tạo hành trang rỗng
+<<<<<<< HEAD
         this.x = 700f;
+=======
+        this.x = 700f;Add commentMore actions
+>>>>>>> 280dd4a (upd inventory)
         this.y = 530f;
 
         gold = 0;
@@ -96,6 +100,33 @@ public class PlayerCharacter extends Character {
     public PlayerState getCurrentState() {
     return currentState;
     }
+
+    // Khởi tạo bounding boxAdd commentMore actions
+        // Ví dụ: làm cho nó nhỏ hơn kích thước frame một chút và ở dưới chân nhân vật
+        float boxWidth = FRAME_WIDTH * 0.5f;   // Rộng bằng 50% ảnh
+        float boxHeight = FRAME_HEIGHT * 0.4f; // Cao bằng 40% ảnh
+        this.boundingBox = new Rectangle();
+        this.boundingBox.width = boxWidth;
+        this.boundingBox.height = boxHeight;
+        // Vị trí của bounding box sẽ được cập nhật liên tục theo vị trí của player
+        updateBoundingBox();
+    }
+
+    public void updateBoundingBox() {
+        // Căn giữa bounding box theo chiều ngang với tâm của player
+        // và đặt nó ở dưới chân player
+        float boxX = x - boundingBox.width / 2f;
+        float boxY = y - FRAME_HEIGHT / 2f; // Đặt bounding box ở dưới cùng của sprite
+        boundingBox.setPosition(boxX, boxY);
+    }
+
+    public Rectangle getBoundingBox() {
+        return boundingBox;
+    }
+
+    public PlayerState getCurrentState() {
+    return currentState;
+}
 
     private void loadAnimations() {
         float frameDuration = 0.15f;
