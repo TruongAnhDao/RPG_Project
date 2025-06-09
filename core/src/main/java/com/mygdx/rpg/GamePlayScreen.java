@@ -65,6 +65,7 @@ public class GamePlayScreen implements Screen {
     private TiledMapTileLayer collisionLayer; 
     private int tilePixelWidth;
     private int tilePixelHeight;
+    private Array<Enemy> enemies;
 
     private InputMultiplexer inputMultiplexer; // Để xử lý nhiều nguồn input
 
@@ -235,6 +236,12 @@ public class GamePlayScreen implements Screen {
             this.tilePixelWidth = tiledMap.getProperties().get("tilewidth", Integer.class) * 3;
             this.tilePixelHeight = tiledMap.getProperties().get("tileheight", Integer.class) * 3;
         }
+
+        this.enemies = new Array<>();
+        // Tạo một enemy mẫu
+        Enemy enemy1 = new Enemy("Wolf", 1, 50, 5, 2, 100, new java.util.ArrayList<>(), 10);
+        enemy1.setPosition(900f, 600f); // Đặt vị trí cho enemy
+        this.enemies.add(enemy1);
     }
 
     private boolean isCellBlocked(float x, float y) {
@@ -468,7 +475,7 @@ public class GamePlayScreen implements Screen {
 
         // --- CẬP NHẬT VỊ TRÍ CAMERA ĐỂ THEO SAU NGƯỜI CHƠI ---
         if (player != null) { // Đảm bảo player đã được khởi tạo
-             gameCamera.position.set(player.getX(), player.getY(), 0); // z = 0 cho 2D
+            gameCamera.position.set(player.getX(), player.getY(), 0); // z = 0 cho 2D
         }
 
         // --- Giới hạn Camera trong phạm vi Map ---
@@ -538,6 +545,10 @@ public class GamePlayScreen implements Screen {
         experienceBar.setRange(0, player.getExperienceToNextLevel());
         experienceBar.setValue(player.getExperience());
         experienceValueLabel.setText(player.getExperience() + "/" + player.getExperienceToNextLevel());
+
+        for (Enemy enemy : enemies) {
+            enemy.update(delta, player);
+        }
 
         // Tạm thời mô phỏng việc máu thay đổi để test HUD
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
@@ -674,6 +685,16 @@ public class GamePlayScreen implements Screen {
                             PlayerCharacter.FRAME_WIDTH,
                             PlayerCharacter.FRAME_HEIGHT);
         }
+
+        for (Enemy enemy : enemies) {
+            if (enemy != null && enemy.getCurrentFrame() != null) {
+                game.batch.draw(enemy.getCurrentFrame(),
+                    enemy.getX() - Enemy.FRAME_WIDTH / 2f,
+                    enemy.getY() - Enemy.FRAME_HEIGHT / 2f,
+                    Enemy.FRAME_WIDTH,
+                    Enemy.FRAME_HEIGHT);
+            }
+        }
         // Vẽ các entities khác ở đây
         game.batch.end();
 
@@ -726,6 +747,9 @@ public class GamePlayScreen implements Screen {
         }
         if (tiledMapRenderer != null) {
             tiledMapRenderer.dispose(); // Quan trọng!
+        }
+        for (Enemy enemy : enemies) {
+            enemy.dispose();
         }
         // Dispose các tài nguyên khác của màn hình game (map, textures nhân vật,...)
     }
