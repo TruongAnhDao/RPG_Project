@@ -43,12 +43,12 @@ public class PlayerCharacter extends Character {
     private Texture attackSheet;
 
     public PlayerCharacter(String name) {
-        super(name, 1, 100, 10, 5, 5);
+        super(name, 1, 100, 10, 10, 80);
 
         configureStatsForLevel();
 
         this.currentMana = this.maxMana;
-        this.speed = 200f;
+        this.speed = 180f;
 
         this.inventory = new ArrayList<>(); // Khởi tạo hành trang rỗng
         this.x = 700f;
@@ -72,7 +72,7 @@ public class PlayerCharacter extends Character {
         // Khởi tạo bounding box
         // Ví dụ: làm cho nó nhỏ hơn kích thước frame một chút và ở dưới chân nhân vật
         float boxWidth = FRAME_WIDTH * 0.5f;   // Rộng bằng 50% ảnh
-        float boxHeight = FRAME_HEIGHT * 0.4f; // Cao bằng 40% ảnh
+        float boxHeight = FRAME_HEIGHT * 0.56f; 
         this.boundingBox = new Rectangle();
         this.boundingBox.width = boxWidth;
         this.boundingBox.height = boxHeight;
@@ -84,7 +84,7 @@ public class PlayerCharacter extends Character {
         // Căn giữa bounding box theo chiều ngang với tâm của player
         // và đặt nó ở dưới chân player
         float boxX = x - boundingBox.width / 2f;
-        float boxY = y - FRAME_HEIGHT / 2f; // Đặt bounding box ở dưới cùng của sprite
+        float boxY = y - FRAME_HEIGHT / 2f + 10; // Đặt bounding box ở dưới cùng của sprite
         boundingBox.setPosition(boxX, boxY);
     }
 
@@ -149,17 +149,39 @@ public class PlayerCharacter extends Character {
         // Xử lý input tấn công trước tiên
         if (attackJustPressed && currentState != PlayerState.ATTACKING) {
             currentState = PlayerState.ATTACKING;
-            stateTime = 0f; // Reset thời gian animation cho hành động tấn công
+            stateTime = 0f; // Reset thời gian animation
+            hitTargets.clear(); // --- MỚI: Xóa danh sách mục tiêu cũ khi bắt đầu một đòn tấn công mới
         }
-
+    
         // Nếu đang tấn công, kiểm tra xem animation đã kết thúc chưa
         if (currentState == PlayerState.ATTACKING) {
-            stateTime += delta; // Chỉ tăng stateTime cho animation đang chạy
-            if (attackAnimation != null && attackAnimation.isAnimationFinished(stateTime)) {
-                currentState = PlayerState.IDLE; // Quay lại trạng thái đứng yên sau khi tấn công xong
-                // stateTime sẽ được reset ở dưới nếu trạng thái thay đổi
+            stateTime += delta;
+
+            // --- MỚI: Kích hoạt Hitbox tại một thời điểm cụ thể của animation ---
+            // Ví dụ: Kích hoạt hitbox từ 0.2s đến 0.4s của animation tấn công
+            if (stateTime >= 0.2f && stateTime <= 0.4f) {
+                isAttackHitboxActive = true;
+                float hitboxX = this.x;
+                float hitboxY = this.y - 20; // Hơi thấp xuống một chút
+                float hitboxWidth = 30;
+                float hitboxHeight = 33;
+            
+                // Điều chỉnh vị trí hitbox dựa trên hướng mặt
+                if (currentFacing == Facing.RIGHT) {
+                    hitboxX += 10; // Dịch sang phải
+                } else {
+                    hitboxX -= (10 + hitboxWidth); // Dịch sang trái
+                }
+                attackHitbox.set(hitboxX, hitboxY, hitboxWidth, hitboxHeight);
+            } else {
+                isAttackHitboxActive = false; // Vô hiệu hóa hitbox ngoài khoảng thời gian trên
             }
-        } else { // Không tấn công, xử lý di chuyển/đứng yên
+        
+            if (attackAnimation != null && attackAnimation.isAnimationFinished(stateTime)) {
+                currentState = PlayerState.IDLE;
+                isAttackHitboxActive = false; // Đảm bảo hitbox tắt khi kết thúc
+            }
+        } else { 
             stateTime += delta; // Tăng stateTime cho idle/walk
             if (movingLeft) {
                 currentState = PlayerState.WALKING;
@@ -172,12 +194,6 @@ public class PlayerCharacter extends Character {
                 // currentFacing không đổi
             } else {
                 currentState = PlayerState.IDLE;
-            }
-        }
-
-        if (previousState != currentState || (currentState != PlayerState.ATTACKING && previousFacing != currentFacing) ) {
-            if (currentState != PlayerState.ATTACKING || previousState == PlayerState.ATTACKING) { //Chỉ reset nếu không phải vừa vào attack
-                 stateTime = 0;
             }
         }
 
@@ -264,9 +280,6 @@ public class PlayerCharacter extends Character {
     public int getExperience() { return experience; }
     public int getLevel() { return level; }
     public int getExperienceToNextLevel() { return experienceToNextLevel; }
-    public float getSpeed() {
-        return speed;
-    }
 
     public void setSpeed(float speed) {
         this.speed = speed;
@@ -278,6 +291,7 @@ public class PlayerCharacter extends Character {
     public void setCurrentMana(int mana) {
         this.currentMana = Math.max(0, Math.min(mana, maxMana));
     }
+    public void setHealth(int Health) { this.hp = Math.max(1, Health); }
 
     public void recalculateDependentStats() {
         // Gọi lại hàm cấu hình chỉ số dựa trên level hiện tại

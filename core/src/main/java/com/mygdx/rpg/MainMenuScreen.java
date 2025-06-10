@@ -11,8 +11,6 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-// TextButton không còn cần thiết nếu Start Game cũng là ImageButton
-// import com.badlogic.gdx.scenes.scene2d.ui.TextButton; 
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton; 
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable; 
@@ -40,7 +38,6 @@ public class MainMenuScreen implements Screen {
 
     // --- Tải Âm Thanh ---
     try {
-        // Thay "sounds/button_click.wav" bằng đường dẫn và tên file đúng của bạn
         clickSound = Gdx.audio.newSound(Gdx.files.internal("sounds/button_click.ogg"));
     } catch (Exception e) {
         Gdx.app.error("MainMenuScreen", "Couldn't load click sound", e);
@@ -49,7 +46,6 @@ public class MainMenuScreen implements Screen {
 
     // --- (Tùy chọn) Tải và Phát Nhạc Nền ---
     try {
-        // Thay "music/menu_background.ogg" bằng đường dẫn và tên file đúng của bạn
         menuMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/menu_background.ogg"));
         if (menuMusic != null) {
             menuMusic.setLooping(true); // Cho nhạc lặp lại

@@ -6,11 +6,14 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.math.Rectangle;
 import java.util.List;
 
 public class Enemy extends Character {
     private List<Item> dropItems;
     private int expReward;
+
+    private Rectangle boundingBox;
 
     // --- CÁC BIẾN ANIMATION ---
     public enum EnemyState { IDLE, RUN, ATTACKING, DEAD }
@@ -27,7 +30,7 @@ public class Enemy extends Character {
     private transient TextureRegion currentFrame;
 
     private static final float SIGHT_RANGE = 300f; // Khoảng cách nhìn thấy người chơi
-    private static final float ATTACK_RANGE = 60f; // Khoảng cách để tấn công
+    private static final float ATTACK_RANGE = 50f; // Khoảng cách để tấn công
 
     public static final int FRAME_WIDTH = 80; // Chiều rộng frame của enemy
     public static final int FRAME_HEIGHT = 80; // Chiều cao frame của enemy
@@ -41,6 +44,24 @@ public class Enemy extends Character {
         this.currentState = EnemyState.IDLE;
         this.stateTime = 0f;
         loadAnimations();
+
+        // --- Khởi tạo bounding box ---
+        this.boundingBox = new Rectangle();
+        float boxWidth = FRAME_WIDTH * 0.5f;
+        float boxHeight = FRAME_HEIGHT * 0.56f;
+        this.boundingBox.width = boxWidth;
+        this.boundingBox.height = boxHeight;
+        updateBoundingBox(); // Cập nhật vị trí ban đầu
+    }
+
+    public void updateBoundingBox() {
+        float boxX = x - boundingBox.width / 2f;
+        float boxY = y - FRAME_HEIGHT / 2f + 10; // Đặt bounding box ở dưới chân enemy
+        boundingBox.setPosition(boxX, boxY);
+    }
+
+    public Rectangle getBoundingBox() {
+        return boundingBox;
     }
 
     private void loadAnimations() {
@@ -71,23 +92,37 @@ public class Enemy extends Character {
 
         // Ưu tiên trạng thái tấn công
         if (currentState == EnemyState.ATTACKING) {
-            // Nếu animation tấn công đã kết thúc, quay về trạng thái IDLE
+            // --- MỚI: Kích hoạt hitbox cho Enemy ---
+            if (stateTime >= 0.2f && stateTime <= 0.4f) { // Căn chỉnh thời gian cho phù hợp với animation của enemy
+                isAttackHitboxActive = true;
+                float hitboxX = this.x;
+                float hitboxY = this.y - 24;
+                float hitboxWidth = 30;
+                float hitboxHeight = 60;
+
+                if (player.getX() > this.x) { // Nếu player ở bên phải
+                    hitboxX += 10;
+                } else { // Nếu player ở bên trái
+                    hitboxX -= (10 + hitboxWidth);
+                }
+                attackHitbox.set(hitboxX, hitboxY, hitboxWidth, hitboxHeight);
+            } else {
+                isAttackHitboxActive = false;
+            }
+
             if (attackAnimation.isAnimationFinished(stateTime)) {
                 currentState = EnemyState.IDLE;
-                stateTime = 0; // Reset stateTime để animation mới bắt đầu từ đầu
+                isAttackHitboxActive = false;
             }
-        } else { // Nếu không đang tấn công, quyết định hành động tiếp theo
+        } else {
+            isAttackHitboxActive = false; // Đảm bảo hitbox luôn tắt khi không tấn công
             if (distanceToPlayer <= ATTACK_RANGE) {
-                // Nếu đủ gần, chuyển sang tấn công
                 currentState = EnemyState.ATTACKING;
-                stateTime = 0; // Reset stateTime cho animation tấn công
+                stateTime = 0;
+                hitTargets.clear(); // --- MỚI: Xóa danh sách mục tiêu cũ
             } else if (distanceToPlayer <= SIGHT_RANGE) {
                 // Nếu thấy người chơi nhưng chưa đủ gần, đi bộ về phía họ
                 currentState = EnemyState.RUN;
-                // Di chuyển enemy về phía player
-                float angle = (float) Math.atan2(player.getY() - this.y, player.getX() - this.x);
-                this.x += (float) Math.cos(angle) * this.speed * delta;
-                this.y += (float) Math.sin(angle) * this.speed * delta;
             } else {
                 // Nếu không thấy người chơi, đứng yên
                 currentState = EnemyState.IDLE;
@@ -143,4 +178,10 @@ public class Enemy extends Character {
         if (runSheet != null) runSheet.dispose();     
         if (attackSheet != null) attackSheet.dispose();
     }
+
+    public EnemyState getCurrentState(){
+        return currentState;
+    }
+
+
 }

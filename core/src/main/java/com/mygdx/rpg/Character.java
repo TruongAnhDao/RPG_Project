@@ -1,6 +1,7 @@
 package com.mygdx.rpg;
 
-//import com.mygdx.rpg.Item;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.Array;
 
 public class Character {
     protected String name;
@@ -11,6 +12,11 @@ public class Character {
     protected float speed;
     protected int maxhp;
     protected float x, y;
+    // --- MỚI: Các biến cho Hitbox Tấn công ---
+    protected Rectangle attackHitbox;
+    protected boolean isAttackHitboxActive;
+    // Danh sách để theo dõi các mục tiêu đã bị đánh trúng trong 1 lần tấn công
+    protected Array<Character> hitTargets;
 
     public Character(String name, int level, int maxhp, int attack, int defense, float speed) {
         this.name = name;
@@ -21,6 +27,9 @@ public class Character {
         this.speed = speed;
         this.x = 0; 
         this.y = 0;
+        this.attackHitbox = new Rectangle();
+        this.isAttackHitboxActive = false;
+        this.hitTargets = new Array<>();
     }
 
     public String getName() {
@@ -47,20 +56,42 @@ public class Character {
         return y;
     }
 
+    public float getSpeed(){
+        return speed;
+    }
+
     public void setPosition(float x, float y) {
         this.x = x;
         this.y = y;
     }
 
+    // --- MỚI: Thêm các getter cần thiết ---
+    public Rectangle getAttackHitbox() {
+        return attackHitbox;
+    }
+
+    public boolean isAttackHitboxActive() {
+        return isAttackHitboxActive;
+    }
+    
+    public Array<Character> getHitTargets() {
+        return hitTargets;
+    }
+
     public void attack(Character target) {
+        if (hitTargets.contains(target, true)) {
+            return; // Đã đánh trúng mục tiêu này rồi, không tấn công nữa
+        }
+
         int damage = Math.max(0, this.attack - target.defense);
         target.takeDamage(damage);
         System.out.println(name + " attacks " + target.name + " for " + damage + " damage!");
+        hitTargets.add(target); // Thêm mục tiêu vào danh sách đã bị đánh trúng
     }
 
     public void takeDamage(int damage) {
         hp -= damage;
-        //if (hp < 0) hp = 0;
+        if (hp < 0) hp = 0;
         System.out.println(name + " takes " + damage + " damage. Remaining HP: " + hp);
     }
 

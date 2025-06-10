@@ -32,6 +32,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
 public class GamePlayScreen implements Screen {
 
@@ -86,16 +87,15 @@ public class GamePlayScreen implements Screen {
     private boolean movingRight = false;
     private boolean playerAttackRequested = false; // Cờ cho yêu cầu tấn công
 
+    private ShapeRenderer shapeRenderer;
+
 
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
 
         // 1. Thiết lập Camera và Viewport cho thế giới game (nếu bạn vẽ 2D/3D world)
         gameCamera = new OrthographicCamera();
-        // Ví dụ: FitViewport để giữ tỷ lệ khung hình của thế giới game
-        // Bạn có thể điều chỉnh WORLD_WIDTH, WORLD_HEIGHT theo kích thước thế giới game mong muốn
-        float WORLD_WIDTH = 800; // Ví dụ
-        float WORLD_HEIGHT = 480; // Ví dụ
+        
         gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
         //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
         //gameViewport.apply();
@@ -116,7 +116,7 @@ public class GamePlayScreen implements Screen {
 
         // --- Khởi tạo đối tượng game ---
         player = new PlayerCharacter("Hero"); // Tạo nhân vật
-        // player.setHealth(100); // Nếu cần thiết lập máu ban đầu qua setter
+        player.setHealth(100); // Nếu cần thiết lập máu ban đầu qua setter
 
         // Thêm item mẫu vào hành trang của người chơi để test
         // Item(String name, String type, String description, int initialQuantity, int maxStackSize)
@@ -239,9 +239,11 @@ public class GamePlayScreen implements Screen {
 
         this.enemies = new Array<>();
         // Tạo một enemy mẫu
-        Enemy enemy1 = new Enemy("Wolf", 1, 50, 5, 2, 100, new java.util.ArrayList<>(), 10);
+        Enemy enemy1 = new Enemy("Wolf", 1, 50, 15, 2, 140, new java.util.ArrayList<>(), 10);
         enemy1.setPosition(900f, 600f); // Đặt vị trí cho enemy
         this.enemies.add(enemy1);
+
+        shapeRenderer = new ShapeRenderer();
     }
 
     private boolean isCellBlocked(float x, float y) {
@@ -473,6 +475,14 @@ public class GamePlayScreen implements Screen {
 
         handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
 
+        for (Enemy enemy : enemies) {
+        enemy.update(delta, player); // Hàm này giờ chỉ cập nhật trạng thái
+        }
+        handleEnemyMovement(delta); // Hàm này xử lý di chuyển vật lý và va chạm
+
+        // --- Gọi hàm xử lý combat ---
+        handleCombat();
+
         // --- CẬP NHẬT VỊ TRÍ CAMERA ĐỂ THEO SAU NGƯỜI CHƠI ---
         if (player != null) { // Đảm bảo player đã được khởi tạo
             gameCamera.position.set(player.getX(), player.getY(), 0); // z = 0 cho 2D
@@ -639,6 +649,84 @@ public class GamePlayScreen implements Screen {
         player.updateBoundingBox();
     }
 
+    private void handleEnemyMovement(float delta) {
+        if (enemies == null || enemies.isEmpty()) return;
+
+        for (Enemy enemy : enemies) {
+            // Chỉ xử lý di chuyển nếu enemy đang ở trạng thái WALKING
+            if (enemy.getCurrentState() != Enemy.EnemyState.RUN) {
+                continue; // Bỏ qua enemy này nếu nó không di chuyển
+            }
+
+            // --- Logic di chuyển và va chạm tương tự handlePlayerMovement ---
+            float currentSpeed = enemy.getSpeed();
+            float moveAmount = currentSpeed * delta;
+
+            // Tính toán vector hướng về phía người chơi
+            float velocityX = 0;
+            float velocityY = 0;
+        
+            float angle = (float) Math.atan2(player.getY() - enemy.getY(), player.getX() - enemy.getX());
+            velocityX = (float) Math.cos(angle) * moveAmount;
+            velocityY = (float) Math.sin(angle) * moveAmount;
+
+            // Lấy bounding box của enemy
+            Rectangle eBox = enemy.getBoundingBox();
+            eBox.x = enemy.getX() - eBox.width / 2f; // Cập nhật lại vị trí box trước khi kiểm tra
+            eBox.y = enemy.getY() - enemy.getBoundingBox().height / 2f;
+
+            // --- Kiểm tra va chạm và di chuyển theo trục X ---
+            eBox.x += velocityX;
+            boolean collisionX = false;
+            if (velocityX > 0) { // Di chuyển sang phải
+                collisionX = isCellBlocked(eBox.x + eBox.width, eBox.y) || isCellBlocked(eBox.x + eBox.width, eBox.y + eBox.height);
+            } else if (velocityX < 0) { // Di chuyển sang trái
+                collisionX = isCellBlocked(eBox.x, eBox.y) || isCellBlocked(eBox.x, eBox.y + eBox.height);
+            }
+
+            if (!collisionX) {
+            enemy.setPosition(enemy.getX() + velocityX, enemy.getY()); // Cập nhật vị trí X thật
+            }
+
+            // --- Kiểm tra va chạm và di chuyển theo trục Y ---
+            eBox.x = enemy.getBoundingBox().x; // Reset pBox.x
+            eBox.y += velocityY;
+            boolean collisionY = false;
+            if (velocityY > 0) { // Di chuyển lên
+                collisionY = isCellBlocked(eBox.x, eBox.y + eBox.height) || isCellBlocked(eBox.x + eBox.width, eBox.y + eBox.height);
+            } else if (velocityY < 0) { // Di chuyển xuống
+                collisionY = isCellBlocked(eBox.x, eBox.y) || isCellBlocked(eBox.x + eBox.width, eBox.y);
+            }
+
+            if (!collisionY) {
+                enemy.setPosition(enemy.getX(), enemy.getY() + velocityY); // Cập nhật vị trí Y thật
+            }
+
+            // Cập nhật lại vị trí bounding box cuối cùng
+            enemy.updateBoundingBox();
+        }
+    }
+
+    private void handleCombat() {
+        // 1. Người chơi tấn công Enemy
+        if (player.isAttackHitboxActive()) {
+            for (Enemy enemy : enemies) {
+                if (player.getAttackHitbox().overlaps(enemy.getBoundingBox())) {
+                    player.attack(enemy); // Phương thức attack đã xử lý việc chỉ đánh 1 lần
+                }
+            }
+        }
+
+        // 2. Enemy tấn công người chơi
+        for (Enemy enemy : enemies) {
+            if (enemy.isAttackHitboxActive()) {
+                if (enemy.getAttackHitbox().overlaps(player.getBoundingBox())) {
+                    enemy.attack(player);
+                }
+            }
+        }
+    }
+
     private void handleInput(float delta) {
         // Ví dụ xử lý input chung cho GamePlayScreen, không thuộc GameInputAdapter
         if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
@@ -698,6 +786,34 @@ public class GamePlayScreen implements Screen {
         // Vẽ các entities khác ở đây
         game.batch.end();
 
+        // --- Vẽ các hitbox và hurtbox để debug ---
+        shapeRenderer.setProjectionMatrix(gameCamera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+    
+        // Vẽ hurtbox của player (màu xanh)
+        shapeRenderer.setColor(0, 1, 0, 1);
+        shapeRenderer.rect(player.getBoundingBox().x, player.getBoundingBox().y, player.getBoundingBox().width, player.getBoundingBox().height);
+    
+        // Vẽ hitbox tấn công của player nếu đang active (màu đỏ)
+        if (player.isAttackHitboxActive()) {
+            shapeRenderer.setColor(1, 0, 0, 1);
+            shapeRenderer.rect(player.getAttackHitbox().x, player.getAttackHitbox().y, player.getAttackHitbox().width, player.getAttackHitbox().height);
+        }
+    
+        // Vẽ cho các enemies
+        for (Enemy enemy : enemies) {
+            // Vẽ hurtbox của enemy (màu xanh)
+                shapeRenderer.setColor(0, 1, 0, 1);
+            shapeRenderer.rect(enemy.getBoundingBox().x, enemy.getBoundingBox().y, enemy.getBoundingBox().width, enemy.getBoundingBox().height);
+
+            // Vẽ hitbox tấn công của enemy nếu đang active (màu đỏ)
+            if (enemy.isAttackHitboxActive()) {
+                shapeRenderer.setColor(1, 0, 0, 1);
+                shapeRenderer.rect(enemy.getAttackHitbox().x, enemy.getAttackHitbox().y, enemy.getAttackHitbox().width, enemy.getAttackHitbox().height);
+            }
+        }
+    
+        shapeRenderer.end();
 
         // 3. Cập nhật và Vẽ HUD
         // hudViewport.apply(); // Không cần gọi nếu hudStage tự quản lý batch và viewport
@@ -751,6 +867,7 @@ public class GamePlayScreen implements Screen {
         for (Enemy enemy : enemies) {
             enemy.dispose();
         }
+        shapeRenderer.dispose();
         // Dispose các tài nguyên khác của màn hình game (map, textures nhân vật,...)
     }
 
