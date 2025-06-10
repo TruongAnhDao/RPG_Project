@@ -10,6 +10,7 @@ public class Character {
     protected int defense;
     protected float speed;
     protected int maxhp;
+    protected float x, y;
 
     public Character(String name, int level, int maxhp, int attack, int defense, float speed) {
         this.name = name;
@@ -18,6 +19,8 @@ public class Character {
         this.attack = attack;
         this.defense = defense;
         this.speed = speed;
+        this.x = 0; 
+        this.y = 0;
     }
 
     public String getName() {
@@ -34,6 +37,19 @@ public class Character {
 
     public int getMaxHealth() {
         return maxhp;
+    }
+
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public void setPosition(float x, float y) {
+        this.x = x;
+        this.y = y;
     }
 
     public void attack(Character target) {

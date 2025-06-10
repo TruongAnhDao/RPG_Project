@@ -13,7 +13,6 @@ import com.badlogic.gdx.math.Rectangle;
 public class PlayerCharacter extends Character {
     private List<Item> inventory;
     private int gold;
-    public float x, y; // các biến vị trí
     private int currentMana;
     private int maxMana;
     private int experience;
@@ -494,13 +493,6 @@ public class PlayerCharacter extends Character {
 
     public List<Item> getInventory() {
         return inventory;
-    }
-
-    public float getX() { return x; }
-    public float getY() { return y; }
-    public void setPosition(float x, float y) {
-        this.x = x;
-        this.y = y;
     }
 
     // Chức năng khác ( sửa sau )

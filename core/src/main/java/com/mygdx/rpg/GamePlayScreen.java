@@ -22,47 +22,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.Viewport;
-<<<<<<< HEAD
-<<<<<<< HEAD
-import com.badlogic.gdx.scenes.scene2d.ui.Window; 
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; 
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton; 
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; 
-import com.badlogic.gdx.scenes.scene2d.InputEvent;    
-import com.badlogic.gdx.maps.tiled.TiledMap;                         
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.maps.MapProperties;
-import com.badlogic.gdx.math.MathUtils; 
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
-import com.badlogic.gdx.math.Rectangle;
-=======
-import com.badlogic.gdx.scenes.scene2d.ui.Window; // Cho cửa sổ inventory
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; // Để cuộn danh sách item
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton; // Có thể dùng để tương tác với item sau này
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; // Cho nút đóng
-import com.badlogic.gdx.scenes.scene2d.InputEvent;     // Cho ClickListener
-import com.badlogic.gdx.maps.tiled.TiledMap;                         // Thêm import
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      // Thêm import
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer; // Thêm import (nếu map là orthogonal)
-=======
-import com.badlogic.gdx.scenes.scene2d.ui.Window;
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.maps.MapProperties;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
-import com.badlogic.gdx.math.Rectangle;
->>>>>>> 280dd4a (upd inventory)
 import com.badlogic.gdx.utils.Align;
->>>>>>> 8764354 (upd inventory UI)
 
 public class GamePlayScreen implements Screen {
     private List<Item> items = new ArrayList<>();
@@ -108,13 +68,12 @@ public class GamePlayScreen implements Screen {
     public static final float DEFAULT_CAMERA_ZOOM = 0.3f;
     private float mapPixelWidth;
     private float mapPixelHeight;
-<<<<<<< HEAD
-    private TiledMapTileLayer collisionLayer; 
-=======
+
     private TiledMapTileLayer collisionLayer;
->>>>>>> 280dd4a (upd inventory)
+
     private int tilePixelWidth;
     private int tilePixelHeight;
+    private Array<Enemy> enemies;
 
     private InputMultiplexer inputMultiplexer; // Để xử lý nhiều nguồn input
 
@@ -145,14 +104,10 @@ public class GamePlayScreen implements Screen {
         // Bạn có thể điều chỉnh WORLD_WIDTH, WORLD_HEIGHT theo kích thước thế giới game mong muốn
         float WORLD_WIDTH = 800; // Ví dụ
         float WORLD_HEIGHT = 480; // Ví dụ
-<<<<<<< HEAD
-        gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
-        //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
-=======
 
         gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
         //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầuAdd commentMore actions
->>>>>>> 280dd4a (upd inventory)
+
         //gameViewport.apply();
         gameCamera.zoom = DEFAULT_CAMERA_ZOOM;
 
@@ -293,6 +248,12 @@ public class GamePlayScreen implements Screen {
             this.tilePixelWidth = tiledMap.getProperties().get("tilewidth", Integer.class) * 3;
             this.tilePixelHeight = tiledMap.getProperties().get("tileheight", Integer.class) * 3;
         }
+
+        this.enemies = new Array<>();
+        // Tạo một enemy mẫu
+        Enemy enemy1 = new Enemy("Wolf", 1, 50, 5, 2, 100, new java.util.ArrayList<>(), 10);
+        enemy1.setPosition(900f, 600f); // Đặt vị trí cho enemy
+        this.enemies.add(enemy1);
     }
 
     private boolean isCellBlocked(float x, float y) {
@@ -624,10 +585,6 @@ public class GamePlayScreen implements Screen {
            // ==========================
         }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 280dd4a (upd inventory)
         // gameCamera.update() sẽ được gọi trong render() ngay trước khi vẽ
 
         // --- Cập nhật HUD ---
@@ -646,6 +603,10 @@ public class GamePlayScreen implements Screen {
         experienceBar.setRange(0, player.getExperienceToNextLevel());
         experienceBar.setValue(player.getExperience());
         experienceValueLabel.setText(player.getExperience() + "/" + player.getExperienceToNextLevel());
+
+        for (Enemy enemy : enemies) {
+            enemy.update(delta, player);
+        }
 
         // Tạm thời mô phỏng việc máu thay đổi để test HUD
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
@@ -718,11 +679,7 @@ public class GamePlayScreen implements Screen {
         } else {
             player.x += velocityX; // Nếu không va chạm, cập nhật vị trí thật
         }
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> 280dd4a (upd inventory)
         // --- Kiểm tra va chạm và di chuyển theo trục Y ---
         pBox.x = player.getBoundingBox().x; // Reset pBox.x về vị trí hiện tại (đã được xác thực)
         pBox.y += velocityY; // Thử di chuyển bounding box theo Y
@@ -742,11 +699,6 @@ public class GamePlayScreen implements Screen {
 
         // Cập nhật lại vị trí bounding box cuối cùng
         player.updateBoundingBox();
-<<<<<<< HEAD
-    }
-=======
-}
->>>>>>> 280dd4a (upd inventory)
 
     private void handleInput(float delta) {
         // Ví dụ xử lý input chung cho GamePlayScreen, không thuộc GameInputAdapter
@@ -821,6 +773,18 @@ public class GamePlayScreen implements Screen {
             }
         }
 
+        for (Enemy enemy : enemies) {
+            if (enemy != null && enemy.getCurrentFrame() != null) {
+                game.batch.draw(enemy.getCurrentFrame(),
+                    enemy.getX() - Enemy.FRAME_WIDTH / 2f,
+                    enemy.getY() - Enemy.FRAME_HEIGHT / 2f,
+                    Enemy.FRAME_WIDTH,
+                    Enemy.FRAME_HEIGHT);
+            }
+        }
+        // Vẽ các entities khác ở đây
+        game.batch.end();
+
         // Gdx.app.log("GamePlayScreen", "Rendering GamePlayScreen");
         // Nếu inventory đang mở thì vẽ ảnh + các item
         if (inventoryVisible) {
@@ -884,6 +848,9 @@ public class GamePlayScreen implements Screen {
         }
         if (tiledMapRenderer != null) {
             tiledMapRenderer.dispose(); // Quan trọng!
+        }
+        for (Enemy enemy : enemies) {
+            enemy.dispose();
         }
         // Dispose các tài nguyên khác của màn hình game (map, textures nhân vật,...)
     }
