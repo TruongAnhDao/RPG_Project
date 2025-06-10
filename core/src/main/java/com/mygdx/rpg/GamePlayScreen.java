@@ -1,14 +1,17 @@
 package com.mygdx.rpg;
 
+import java.util.ArrayList;
 import java.util.List;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputAdapter; 
-import com.badlogic.gdx.InputMultiplexer; 
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -19,21 +22,24 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import com.badlogic.gdx.scenes.scene2d.ui.Window; 
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane; 
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton; 
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; 
-import com.badlogic.gdx.scenes.scene2d.InputEvent;    
-import com.badlogic.gdx.maps.tiled.TiledMap;                         
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.maps.MapProperties;
-import com.badlogic.gdx.math.MathUtils; 
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
-import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.Align;
 
 public class GamePlayScreen implements Screen {
+    private List<Item> items = new ArrayList<>();
+
+    // Ảnh background của inventory
+    private Texture inventoryTexture;
+
+    // Item hiện đang được chọn
+    private Item selectedItem = null;
+
+    // Vị trí để vẽ inventory trên màn hình
+    private int inventoryX = 400, inventoryY = 100;
+
+    private SpriteBatch batch;
+    private BitmapFont font;
+    private Inventory inventory;
+
 
     private final RPGGame game;
     private OrthographicCamera gameCamera; // Camera cho thế giới game
@@ -62,7 +68,9 @@ public class GamePlayScreen implements Screen {
     public static final float DEFAULT_CAMERA_ZOOM = 0.3f;
     private float mapPixelWidth;
     private float mapPixelHeight;
-    private TiledMapTileLayer collisionLayer; 
+
+    private TiledMapTileLayer collisionLayer;
+
     private int tilePixelWidth;
     private int tilePixelHeight;
     private Array<Enemy> enemies;
@@ -96,8 +104,10 @@ public class GamePlayScreen implements Screen {
         // Bạn có thể điều chỉnh WORLD_WIDTH, WORLD_HEIGHT theo kích thước thế giới game mong muốn
         float WORLD_WIDTH = 800; // Ví dụ
         float WORLD_HEIGHT = 480; // Ví dụ
+
         gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
-        //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
+        //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầuAdd commentMore actions
+
         //gameViewport.apply();
         gameCamera.zoom = DEFAULT_CAMERA_ZOOM;
 
@@ -119,23 +129,25 @@ public class GamePlayScreen implements Screen {
         // player.setHealth(100); // Nếu cần thiết lập máu ban đầu qua setter
 
         // Thêm item mẫu vào hành trang của người chơi để test
-        // Item(String name, String type, String description, int initialQuantity, int maxStackSize)
-        player.addItem(new Item("Potion", "Consumable", "Heals 50 HP", 5, 10)); // 5 Potion, stack tối đa 10
-        player.addItem(new Item("Potion", "Consumable", "Heals 50 HP", 3, 10)); // Thêm 3 Potion nữa để test stacking
-        player.addItem(new Item("Sword of Power", "Weapon", "A mighty fine sword.", 1, 1)); // Kiếm không stack
-        player.addItem(new Item("Old Key", "Key Item", "Opens an old door.", 1, 1));
-        player.addItem(new Item("Mana Potion", "Consumable", "Restores 30 MP", 3, 5)); // 3 Mana Potion, stack tối đa 5
-        player.addItem(new Item("Arrow", "Ammo", "Standard arrow.", 20, 50)); // 20 mũi tên, stack 50
-        player.addItem(new Item("Arrow", "Ammo", "Standard arrow.", 15, 50)); // Thêm 15 mũi tên nữa
+        // Item(String name, String type, String description, int initialQuantity, int maxStackSize, Texture texture)
+        items.add(new Item("Iron Helmet", "Armor", "A great helmet gives you massive defense stats", 1, 1, "helmet.png"));
+        items.add(new Item("Iron Armor", "Armor", "A great armor gives you massive defense stats", 1, 1, "armor.png"));
+        items.add(new Item("Black Shield", "Armor", "A great shield gives you massive defense stats", 1, 1, "shield.png"));
+        items.add(new Item("Iron Sword", "Weapon", "A mighty sword with divine power", 1, 1, "sword.png"));
+        items.add(new Item("Mana Potion", "Consumable", "Restore 30 MP", 3, 5, "mana_potion.png"));
+        items.add(new Item("Heal Potion", "Consumable", "Heal 50 HP", 8, 10, "heal_potion.png"));
+        items.add(new Item("Iron Pickaxe", "Weapon", "A mighty pickaxe gives you great attack stats", 1, 1, "pickaxe.png"));
+        items.add(new Item("Epic Chest", "Chest", "A chest containing rare items", 1, 2, "epic_chest.png"));
+        items.add(new Item("Wooden Chest", "Chest", "A chest containing normal items", 1, 2, "wooden_chest.png"));
 
         // --- Tải tài nguyên ví dụ ---
         try {
-            playerTexture = new Texture(Gdx.files.internal("PlayScreen/playertexture.png")); 
+            playerTexture = new Texture(Gdx.files.internal("PlayScreen/playertexture.png"));
         } catch (Exception e) {
             Gdx.app.error("GamePlayScreen", "Could not load textures", e);
         }
 
-        // Tạo các UI elements cho HUD 
+        // Tạo các UI elements cho HUD
         Table hudTable = new Table();
         hudTable.setFillParent(true);
         hudTable.top().left().pad(10); // Thêm padding chung cho hudTable
@@ -186,7 +198,7 @@ public class GamePlayScreen implements Screen {
 
         // --- Tải TileMap ---
         try {
-            tiledMap = new TmxMapLoader().load("Map/Map.tmx"); 
+            tiledMap = new TmxMapLoader().load("Map/Map.tmx");
             // Đơn vị của map renderer, nếu bạn muốn mỗi pixel trong map tương ứng 1 đơn vị thế giới:
             tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, game.batch);
             // Nếu bạn muốn dùng unit scale (ví dụ 1 tile = 32 đơn vị thế giới, mỗi đơn vị là 1 pixel)
@@ -256,6 +268,44 @@ public class GamePlayScreen implements Screen {
         // Một ô được coi là "cản" nếu nó không rỗng (cell != null) VÀ ô đó chứa một tile (cell.getTile() != null)
         return cell != null && cell.getTile() != null;
     }
+
+
+        // --- Tải TileMap và lấy kích thước ---
+        if (tiledMap != null) { // Đảm bảo tiledMap đã được tải thành công
+            MapProperties prop = tiledMap.getProperties();
+            int mapWidthInTiles = prop.get("width", Integer.class);
+            int mapHeightInTiles = prop.get("height", Integer.class);
+            int tilePixelWidth = prop.get("tilewidth", Integer.class);
+            int tilePixelHeight = prop.get("tileheight", Integer.class);
+
+            this.mapPixelWidth = mapWidthInTiles * tilePixelWidth * 3;
+            this.mapPixelHeight = mapHeightInTiles * tilePixelHeight * 3;
+        }
+
+        if (tiledMap != null) {
+            // "Tile Layer 2" là tên layer va chạm của bạn
+            // Nếu bạn đổi tên nó, hãy cập nhật ở đây
+            this.collisionLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tile Layer 3");
+            if (collisionLayer == null) {
+                Gdx.app.error("GamePlayScreen", "Collision layer 'Tile Layer 2' not found!");
+            }
+            // Lấy kích thước tile để tính toán tọa độ ô
+            this.tilePixelWidth = tiledMap.getProperties().get("tilewidth", Integer.class) * 3;
+            this.tilePixelHeight = tiledMap.getProperties().get("tileheight", Integer.class) * 3;
+        }
+    }
+
+    private boolean isCellBlocked(float x, float y) {
+        if (collisionLayer == null) return false; // Nếu không có layer va chạm thì không có gì cản cả
+
+        // Chuyển đổi tọa độ pixel của thế giới game sang tọa độ ô (cell) của map
+        int cellX = (int) (x / tilePixelWidth);
+        int cellY = (int) (y / tilePixelHeight);
+
+        TiledMapTileLayer.Cell cell = collisionLayer.getCell(cellX, cellY);
+
+        // Một ô được coi là "cản" nếu nó không rỗng (cell != null) VÀ ô đó chứa một tile (cell.getTile() != null)
+        return cell != null && cell.getTile() != null;
 
     private void setupInventoryUI() {
         inventoryWindow = new Window("Inventory", skin); // Tiêu đề cửa sổ
@@ -388,7 +438,7 @@ public class GamePlayScreen implements Screen {
                 itemButton.addListener(new ClickListener() {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {
-                        Item clickedItem = (Item) ((TextButton)event.getListenerActor()).getUserObject();
+                        Item clickedItem = (Item) ((TextButton) event.getListenerActor()).getUserObject();
                         Gdx.app.log("InventoryClick", "Clicked on: " + clickedItem.getName());
 
                         // Hiển thị mô tả trước
@@ -409,7 +459,7 @@ public class GamePlayScreen implements Screen {
             populateInventoryTable(); // Cập nhật danh sách item khi mở
             inputMultiplexer.removeProcessor(1); // Gỡ GameInputAdapter tạm thời
             inputMultiplexer.addProcessor(0, hudStage); // Đảm bảo hudStage (chứa inventoryWindow) xử lý input trước tiên
-                                                         // hoặc chỉ cần addProcessor(inventoryWindow.getStage()) nếu inventoryWindow không thuộc hudStage
+            // hoặc chỉ cần addProcessor(inventoryWindow.getStage()) nếu inventoryWindow không thuộc hudStage
             Gdx.input.setInputProcessor(inputMultiplexer); // Cập nhật lại input processor
             // Có thể bạn muốn tạm dừng game ở đây
             // Gdx.app.log("Inventory", "Inventory Opened");
@@ -418,7 +468,7 @@ public class GamePlayScreen implements Screen {
             // Khôi phục input processor như cũ
             inputMultiplexer.removeProcessor(hudStage); // Gỡ hudStage (nếu đã thêm ở vị trí 0)
             inputMultiplexer.addProcessor(hudStage);    // Thêm lại hudStage ở cuối
-            inputMultiplexer.addProcessor(1,new GameInputAdapter()); // Thêm lại GameInputAdapter
+            inputMultiplexer.addProcessor(1, new GameInputAdapter()); // Thêm lại GameInputAdapter
             Gdx.input.setInputProcessor(inputMultiplexer); // Cập nhật lại
             // Gdx.app.log("Inventory", "Inventory Closed");
         }
@@ -449,10 +499,18 @@ public class GamePlayScreen implements Screen {
         dropItemButton.setVisible(false); // Luôn ẩn nút Drop khi không có mô tả/item nào được chọn
         useItemButton.setVisible(false);
         currentSelectedItem = null; // Không còn item nào được chọn
-}
+    }
 
     @Override
     public void show() {
+        batch = new SpriteBatch();
+        font = new BitmapFont();
+        inventory = new Inventory();
+
+        // Tải ảnh background của inventory từ file
+	new Texture(Gdx.files.internal("Inventory/Inventory.png"));
+
+
         Gdx.app.log("GamePlayScreen", "show called");
         // Quan trọng: Khi màn hình này được hiển thị, bạn cần đặt InputProcessor
         // Nếu bạn có cả input cho game world (nhân vật di chuyển) và HUD (click nút trên HUD)
@@ -603,6 +661,10 @@ public class GamePlayScreen implements Screen {
         Rectangle pBox = player.getBoundingBox(); // Lấy bounding box của player
         pBox.x += velocityX; // Thử di chuyển bounding box theo X
 
+        // --- Kiểm tra va chạm và di chuyển theo trục X ---
+        Rectangle pBox = player.getBoundingBox(); // Lấy bounding box của player
+        pBox.x += velocityX; // Thử di chuyển bounding box theo X
+
         // Kiểm tra các điểm trên bounding box sau khi di chuyển theo X
         // Ví dụ: kiểm tra 2 góc của cạnh sẽ di chuyển tới
         boolean collisionX = false;
@@ -617,7 +679,7 @@ public class GamePlayScreen implements Screen {
         } else {
             player.x += velocityX; // Nếu không va chạm, cập nhật vị trí thật
         }
-    
+
         // --- Kiểm tra va chạm và di chuyển theo trục Y ---
         pBox.x = player.getBoundingBox().x; // Reset pBox.x về vị trí hiện tại (đã được xác thực)
         pBox.y += velocityY; // Thử di chuyển bounding box theo Y
@@ -637,7 +699,6 @@ public class GamePlayScreen implements Screen {
 
         // Cập nhật lại vị trí bounding box cuối cùng
         player.updateBoundingBox();
-    }
 
     private void handleInput(float delta) {
         // Ví dụ xử lý input chung cho GamePlayScreen, không thuộc GameInputAdapter
@@ -673,6 +734,7 @@ public class GamePlayScreen implements Screen {
         }
 
         // --- Vẽ các đối tượng game khác (Player, Enemies, Items trên đất, v.v.) ---
+
         // --- Vẽ thế giới game (sẽ di chuyển theo camera) ---
         game.batch.begin();
         // --- Vẽ Player bằng currentFrame ---
@@ -680,10 +742,35 @@ public class GamePlayScreen implements Screen {
             TextureRegion frame = player.getCurrentFrame();
             // Vẽ frame tại vị trí player, căn giữa frame
             game.batch.draw(frame,
-                            player.getX() - PlayerCharacter.FRAME_WIDTH / 2f,
-                            player.getY() - PlayerCharacter.FRAME_HEIGHT / 2f,
-                            PlayerCharacter.FRAME_WIDTH,
-                            PlayerCharacter.FRAME_HEIGHT);
+                player.getX() - PlayerCharacter.FRAME_WIDTH / 2f,
+                player.getY() - PlayerCharacter.FRAME_HEIGHT / 2f,
+                PlayerCharacter.FRAME_WIDTH,
+                PlayerCharacter.FRAME_HEIGHT);
+        }
+        // Nếu inventory đang mở và người chơi click chuột
+        if (inventoryVisible && Gdx.input.justTouched()) {
+            int mouseX = Gdx.input.getX();
+            int mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
+            int slotSize = 128;
+            int gridStartX = inventoryX + 35;
+            int gridStartY = inventoryY + 520;
+
+            // Kiểm tra vị trí click chuột có nằm trong ô item nào không
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 3; col++) {
+                    int x = gridStartX + col * slotSize;
+                    int y = gridStartY - row * slotSize;
+
+                    if (mouseX >= x && mouseX < x + slotSize && mouseY >= y && mouseY < y + slotSize) {
+                        int index = row * 3 + col;
+
+                        // Nếu có item trong ô này thì set làm selectedItem
+                        if (index < inventory.getItems().size()) {
+                            selectedItem = inventory.getItems().get(index);
+                        }
+                    }
+                }
+            }
         }
 
         for (Enemy enemy : enemies) {
@@ -698,13 +785,23 @@ public class GamePlayScreen implements Screen {
         // Vẽ các entities khác ở đây
         game.batch.end();
 
+        // Gdx.app.log("GamePlayScreen", "Rendering GamePlayScreen");
+        // Nếu inventory đang mở thì vẽ ảnh + các item
+        if (inventoryVisible) {
+            batch.draw(inventoryTexture, inventoryX, inventoryY); // Vẽ ảnh nền inventory
+            inventory.render(batch, inventoryX + 35, inventoryY + 520); // Vẽ các item trong lưới
+            // Nếu có item đang được chọn thì hiện mô tả bên dưới
+            if (selectedItem != null) {
+                font.draw(batch, selectedItem.getEffect(), inventoryX + 40, inventoryY + 40, 440, Align.left, true);
+            }
+        }
+        game.batch.end();
 
-        // 3. Cập nhật và Vẽ HUD
+        // Cập nhật và Vẽ HUD
         // hudViewport.apply(); // Không cần gọi nếu hudStage tự quản lý batch và viewport
         hudStage.act(Math.min(delta, 1 / 30f));
         hudStage.draw();
 
-        // Gdx.app.log("GamePlayScreen", "Rendering GamePlayScreen");
     }
 
     @Override
@@ -734,6 +831,10 @@ public class GamePlayScreen implements Screen {
 
     @Override
     public void dispose() {
+	batch.dispose();
+        font.dispose();
+        inventoryTexture.dispose();
+
         Gdx.app.log("GamePlayScreen", "Disposing GamePlayScreen");
         hudStage.dispose();
         if (skin != null) {

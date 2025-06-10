@@ -2,26 +2,37 @@ package com.mygdx.rpg;
 
 //import com.mygdx.rpg.Character;
 
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.Gdx;
 
 public class Item {
     private String name;
-    private String type;     // e.g., "Potion", "Weapon", "Armor"
+    private String type;     // e.g., "Potion", "Weapon", "Armor", "Chest"
     private String effect;   // Mô tả hiệu ứng, ví dụ: "Heals 50 HP"
     private int quantity;
-    private int maxStackSize; 
+    private int maxStackSize;
+    private String texturePath;
 
-    public Item(String name, String type, String effect, int initialQuantity, int maxStackSize) {
+    private Texture texture;
+
+    public Item(String name, String type, String effect, int initialQuantity, int maxStackSize, String texturePath) {
         this.name = name;
         this.type = type;
         this.effect = effect;
         this.maxStackSize = Math.max(1, maxStackSize); // Đảm bảo maxStackSize ít nhất là 1
         this.quantity = Math.max(1, Math.min(initialQuantity, this.maxStackSize)); // Đảm bảo quantity hợp lệ
+ 	this.texturePath = texturePath;
+
+	this.texture = new Texture(Gdx.files.internal("Inventory/helmet.png"));
+
+
     }
 
     // Constructor cũ hơn cho item không stack hoặc mặc định quantity = 1, maxStack = 1
-    public Item(String name, String type, String description) {
-        this(name, type, description, 1, 1); // Mặc định không stack, số lượng là 1
+    public Item(String name, String type, String description, String texturePath) {
+        this(name, type, description, 1, 1, texturePath); //
     }
+
 
     public String getName() {
         return name;
@@ -36,6 +47,7 @@ public class Item {
     }
     public int getQuantity() { return quantity; }
     public int getMaxStackSize() { return maxStackSize; }
+    public Texture getTexture() { return texture; }
 
     // Setters and Modifiers
     public void setQuantity(int quantity) {
