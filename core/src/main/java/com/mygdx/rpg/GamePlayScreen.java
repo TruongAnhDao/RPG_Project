@@ -33,6 +33,7 @@ import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.math.MathUtils; 
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -91,6 +92,8 @@ public class GamePlayScreen implements Screen {
     private boolean playerAttackRequested = false; // Cờ cho yêu cầu tấn công
 
     private ShapeRenderer shapeRenderer;
+
+    private Music backgroundMusic;
 
 
     public GamePlayScreen(final RPGGame game) {
@@ -491,6 +494,16 @@ public class GamePlayScreen implements Screen {
             inputMultiplexer.addProcessor(new GameInputAdapter()); // Input cho game
         }
         Gdx.input.setInputProcessor(inputMultiplexer); // Cho phép HUD nhận input
+
+        try {
+            // Thay "sounds/gameplay_music.mp3" bằng đường dẫn đến file nhạc của bạn
+            backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/gameplay_music.mp3"));
+            backgroundMusic.setLooping(true); // Đặt cho nhạc lặp lại
+            backgroundMusic.setVolume(0.5f);  // Đặt âm lượng (từ 0.0 đến 1.0)
+            backgroundMusic.play();           // Bắt đầu phát nhạc
+        } catch (Exception e) {
+            Gdx.app.error("MusicLoader", "Could not load background music", e);
+        }
     }
 
     // Hàm cập nhật logic game (ví dụ)
@@ -848,6 +861,9 @@ public class GamePlayScreen implements Screen {
     public void hide() {
         Gdx.app.log("GamePlayScreen", "hide called");
         // Không nhất thiết phải dispose ở đây nếu bạn muốn quay lại màn hình này (ví dụ: từ PauseMenu)
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+        }
     }
 
     @Override
@@ -871,6 +887,9 @@ public class GamePlayScreen implements Screen {
         }
         shapeRenderer.dispose();
         // Dispose các tài nguyên khác của màn hình game (map, textures nhân vật,...)
+        if (backgroundMusic != null) {
+            backgroundMusic.dispose();
+        }
     }
 
     // Lớp nội (inner class) để xử lý input cho thế giới game
