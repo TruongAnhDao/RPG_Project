@@ -27,6 +27,7 @@ public class Enemy extends Character {
     private transient Texture idleSheet; // Dùng `transient` để Gson (nếu có) bỏ qua
     private transient Texture runSheet;
     private transient Texture attackSheet;
+    private transient Texture corpseTexture;
     private transient TextureRegion currentFrame;
 
     private static final float SIGHT_RANGE = 180f; // Khoảng cách nhìn thấy người chơi
@@ -79,12 +80,28 @@ public class Enemy extends Character {
             TextureRegion[][] tmpFramesAttack = TextureRegion.split(attackSheet, FRAME_WIDTH, FRAME_HEIGHT);
             attackAnimation = new Animation<>(0.35f, new Array<>(tmpFramesAttack[0]), Animation.PlayMode.NORMAL); // NORMAL để không lặp lại
 
+            // --- TẢI HÌNH ẢNH CÁI XÁC ---
+            corpseTexture = new Texture(Gdx.files.internal("enemy/Wolf_die.png")); 
+
         } catch (Exception e) {
             Gdx.app.error("Enemy", "Error loading enemy animations", e);
         }
     }
 
     public void update(float delta, PlayerCharacter player) {
+        if (currentState == EnemyState.DEAD) {
+            return;
+        }
+
+        // Kiểm tra nếu vừa chết
+        if (isDead()) {
+            currentState = EnemyState.DEAD;
+            dropLoot(player);
+            Gdx.app.log("Enemy", name + " has died.");
+            return; // Dừng xử lý
+        }
+
+        // --- LOGIC CỦA ENEMY KHI CÒN SỐNG ---
         stateTime += delta;
 
         // --- LOGIC AI ĐỂ THAY ĐỔI TRẠNG THÁI ---
@@ -128,28 +145,7 @@ public class Enemy extends Character {
                 currentState = EnemyState.IDLE;
             }
         }
-        
-        // --- CHỌN KHUNG HÌNH DỰA TRÊN TRẠNG THÁI ---
-        switch (currentState) {
-            case RUN:
-                if (runAnimation != null) {
-                    currentFrame = runAnimation.getKeyFrame(stateTime, true);
-                }
-                break;
-            case ATTACKING:
-                if (attackAnimation != null) {
-                    currentFrame = attackAnimation.getKeyFrame(stateTime, false);
-                }
-                break;
-            case IDLE:
-            default:
-                if (idleAnimation != null) {
-                    currentFrame = idleAnimation.getKeyFrame(stateTime, true);
-                }
-                break;
-        }
-        
-        // (Tùy chọn) Logic lật hình ảnh của Enemy để đối mặt với người chơi
+
         if (player.getX() < this.x && currentFrame != null && !currentFrame.isFlipX()) {
             currentFrame.flip(true, false);
         } else if (player.getX() > this.x && currentFrame != null && currentFrame.isFlipX()) {
@@ -158,7 +154,24 @@ public class Enemy extends Character {
     }
 
     public TextureRegion getCurrentFrame() {
+        currentFrame = null;
+        switch (currentState) {
+            case RUN:
+                if (runAnimation != null) currentFrame = runAnimation.getKeyFrame(stateTime, true);
+                break;
+            case ATTACKING:
+                if (attackAnimation != null) currentFrame = attackAnimation.getKeyFrame(stateTime, false);
+                break;
+            case IDLE:
+            default:
+                if (idleAnimation != null) currentFrame = idleAnimation.getKeyFrame(stateTime, true);
+                break;
+        }
         return currentFrame;
+    }
+
+    public Texture getCorpseTexture() {
+        return corpseTexture;
     }
 
     public void attackPlayer(PlayerCharacter player) {
@@ -177,11 +190,10 @@ public class Enemy extends Character {
         if (idleSheet != null) idleSheet.dispose();
         if (runSheet != null) runSheet.dispose();     
         if (attackSheet != null) attackSheet.dispose();
+        if (corpseTexture != null) corpseTexture.dispose();
     }
 
     public EnemyState getCurrentState(){
         return currentState;
     }
-
-
 }

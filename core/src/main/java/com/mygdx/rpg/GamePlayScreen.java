@@ -763,12 +763,26 @@ public class GamePlayScreen implements Screen {
         }
 
         for (Enemy enemy : enemies) {
-            if (enemy != null && enemy.getCurrentFrame() != null) {
-                game.batch.draw(enemy.getCurrentFrame(),
+            if (enemy.getCurrentState() == Enemy.EnemyState.DEAD) {
+                // Nếu enemy đã chết, vẽ hình ảnh cái xác
+                Texture corpse = enemy.getCorpseTexture();
+                if (corpse != null) {
+                    game.batch.draw(corpse,
+                    enemy.getX() - Enemy.FRAME_WIDTH / 2f,
+                    enemy.getY() - Enemy.FRAME_HEIGHT / 2f,
+                    Enemy.FRAME_WIDTH - 10,
+                    Enemy.FRAME_HEIGHT - 10);
+                }
+            } else {
+                // Nếu enemy còn sống, vẽ animation frame hiện tại
+                TextureRegion frame = enemy.getCurrentFrame();
+                if (frame != null) {
+                    game.batch.draw(frame,
                     enemy.getX() - Enemy.FRAME_WIDTH / 2f,
                     enemy.getY() - Enemy.FRAME_HEIGHT / 2f,
                     Enemy.FRAME_WIDTH,
                     Enemy.FRAME_HEIGHT);
+                }
             }
         }
         // Vẽ các entities khác ở đây

@@ -21,7 +21,7 @@ public class PlayerCharacter extends Character {
     private Rectangle boundingBox; // Hộp va chạm của người chơi
 
     // --- Thêm các biến cho Animation ---
-    public enum PlayerState { IDLE, WALKING, ATTACKING }
+    public enum PlayerState { IDLE, WALKING, ATTACKING, DEAD }
     public enum Facing { LEFT, RIGHT }
 
     private PlayerState currentState;

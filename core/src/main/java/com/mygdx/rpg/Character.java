@@ -21,15 +21,20 @@ public class Character {
     public Character(String name, int level, int maxhp, int attack, int defense, float speed) {
         this.name = name;
         this.level = level;
-        this.hp = this.maxhp;
         this.attack = attack;
         this.defense = defense;
         this.speed = speed;
         this.x = 0; 
         this.y = 0;
+        this.maxhp = maxhp;
+        this.hp = maxhp;
         this.attackHitbox = new Rectangle();
         this.isAttackHitboxActive = false;
         this.hitTargets = new Array<>();
+    }
+
+    public boolean isDead() {
+        return this.hp <= 0;
     }
 
     public String getName() {
