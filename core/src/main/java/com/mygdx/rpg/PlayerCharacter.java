@@ -98,6 +98,7 @@ public class PlayerCharacter extends Character {
 
     private void loadAnimations() {
         float frameDuration = 0.15f;
+        float attackFrameDuration = 0.1f; 
         int numberOfFrames = 4;
 
         try {
@@ -138,7 +139,7 @@ public class PlayerCharacter extends Character {
                 attackFrames.add(tmpFramesAttack[0][i]);
             }
             // Animation.PlayMode.NORMAL nghĩa là animation sẽ không lặp lại
-            attackAnimation = new Animation<>(frameDuration, attackFrames, Animation.PlayMode.NORMAL);
+            attackAnimation = new Animation<>(attackFrameDuration, attackFrames, Animation.PlayMode.NORMAL);
         }
     }
 
@@ -158,8 +159,7 @@ public class PlayerCharacter extends Character {
             stateTime += delta;
 
             // --- MỚI: Kích hoạt Hitbox tại một thời điểm cụ thể của animation ---
-            // Ví dụ: Kích hoạt hitbox từ 0.2s đến 0.4s của animation tấn công
-            if (stateTime >= 0.2f && stateTime <= 0.4f) {
+            if (stateTime >= 0.1f && stateTime <= 0.35f) {
                 isAttackHitboxActive = true;
                 float hitboxX = this.x;
                 float hitboxY = this.y - 20; // Hơi thấp xuống một chút

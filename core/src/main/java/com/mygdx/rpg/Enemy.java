@@ -77,7 +77,7 @@ public class Enemy extends Character {
 
             attackSheet = new Texture(Gdx.files.internal("enemy/Wolf_anim_attack.png"));
             TextureRegion[][] tmpFramesAttack = TextureRegion.split(attackSheet, FRAME_WIDTH, FRAME_HEIGHT);
-            attackAnimation = new Animation<>(0.1f, new Array<>(tmpFramesAttack[0]), Animation.PlayMode.NORMAL); // NORMAL để không lặp lại
+            attackAnimation = new Animation<>(0.35f, new Array<>(tmpFramesAttack[0]), Animation.PlayMode.NORMAL); // NORMAL để không lặp lại
 
         } catch (Exception e) {
             Gdx.app.error("Enemy", "Error loading enemy animations", e);
@@ -93,7 +93,7 @@ public class Enemy extends Character {
         // Ưu tiên trạng thái tấn công
         if (currentState == EnemyState.ATTACKING) {
             // --- MỚI: Kích hoạt hitbox cho Enemy ---
-            if (stateTime >= 0.2f && stateTime <= 0.4f) { // Căn chỉnh thời gian cho phù hợp với animation của enemy
+            if (stateTime >= 0.4f && stateTime <= 1f) { // Căn chỉnh thời gian cho phù hợp với animation của enemy
                 isAttackHitboxActive = true;
                 float hitboxX = this.x;
                 float hitboxY = this.y - 24;

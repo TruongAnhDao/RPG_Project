@@ -263,7 +263,7 @@ public class GamePlayScreen implements Screen {
 
                 // Tạo một enemy mới tại vị trí này.
                 // Bạn có thể tùy chỉnh các chỉ số của enemy ở đây, hoặc đọc chúng từ properties của object trong Tiled
-                Enemy newEnemy = new Enemy("Wolf", 1, 50, 15, 2, 140, new java.util.ArrayList<>(), 10);
+                Enemy newEnemy = new Enemy("Wolf", 1, 50, 15, 2, 120, new java.util.ArrayList<>(), 10);
                 newEnemy.setPosition(x, y); // Đặt vị trí cho enemy theo tọa độ thế giới
                 enemies.add(newEnemy);
 
