@@ -29,7 +29,7 @@ public class Enemy extends Character {
     private transient Texture attackSheet;
     private transient TextureRegion currentFrame;
 
-    private static final float SIGHT_RANGE = 300f; // Khoảng cách nhìn thấy người chơi
+    private static final float SIGHT_RANGE = 180f; // Khoảng cách nhìn thấy người chơi
     private static final float ATTACK_RANGE = 50f; // Khoảng cách để tấn công
 
     public static final int FRAME_WIDTH = 80; // Chiều rộng frame của enemy

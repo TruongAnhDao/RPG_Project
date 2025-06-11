@@ -27,6 +27,9 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.maps.tiled.TiledMap;                         
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;                      
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapObject;
+import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.math.MathUtils; 
 import com.badlogic.gdx.utils.Array;
@@ -93,16 +96,13 @@ public class GamePlayScreen implements Screen {
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
 
-        // 1. Thiết lập Camera và Viewport cho thế giới game (nếu bạn vẽ 2D/3D world)
-        gameCamera = new OrthographicCamera();
-        
-        gameViewport = new ScreenViewport(gameCamera); // Hoặc dùng ScreenViewport nếu muốn co giãn tự do
-        //gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Cập nhật camera ban đầu
-        //gameViewport.apply();
+        // Thiết lập Camera và Viewport cho thế giới game (nếu bạn vẽ 2D/3D world)
+        gameCamera = new OrthographicCamera();      
+        gameViewport = new ScreenViewport(gameCamera); 
         gameCamera.zoom = DEFAULT_CAMERA_ZOOM;
 
 
-        // 2. Thiết lập Stage và Viewport cho HUD (Giao diện trên màn hình)
+        // Thiết lập Stage và Viewport cho HUD (Giao diện trên màn hình)
         hudViewport = new ScreenViewport(); // HUD thường dùng ScreenViewport để co giãn theo màn hình
         hudStage = new Stage(hudViewport, game.batch); // Sử dụng lại batch từ game chính
 
@@ -142,18 +142,12 @@ public class GamePlayScreen implements Screen {
 
         // --- Health ---
         healthLabel = new Label("HP:", skin, "default"); // Chỉ còn chữ "HP:"
-        // Giả sử style tên là "default-horizontal" trong uiskin.json
-        // ProgressBar(float min, float max, float stepSize, boolean vertical, ProgressBarStyle style)
         healthBar = new ProgressBar(0, player.getMaxHealth(), 1, false, skin, "health-bar-style");
         healthBar.setValue(player.getCurrentHealth());
         this.healthValueLabel = new Label(player.getCurrentHealth() + "/" + player.getMaxHealth(), skin, "default");
-        // Bạn có thể tùy chỉnh kích thước của ProgressBar
-        // healthBar.getStyle().background.setMinWidth(200); // Ví dụ đặt chiều rộng tối thiểu cho nền
-        //healthBar.getStyle().knob.setMinWidth(190); // Ví dụ cho knob
 
         hudTable.add(healthLabel).padRight(5);
         hudTable.add(healthBar).width(200).height(20).padRight(10); // Đặt kích thước cho thanh máu
-        // Label hiển thị số liệu máu (ví dụ: 100/100)
         hudTable.add(this.healthValueLabel).row();
 
         // --- Mana ---
@@ -161,6 +155,7 @@ public class GamePlayScreen implements Screen {
         manaBar = new ProgressBar(0, player.getMaxMana(), 1, false, skin, "mana-bar-style");
         manaBar.setValue(player.getCurrentMana());
         this.manaValueLabel = new Label(player.getCurrentMana() + "/" + player.getMaxMana(), skin, "default");
+
         hudTable.add(manaLabel).padRight(5).padTop(5);
         hudTable.add(manaBar).width(200).height(20).padRight(10).padTop(5);
         hudTable.add(this.manaValueLabel).padTop(5).row();
@@ -171,8 +166,6 @@ public class GamePlayScreen implements Screen {
         experienceBar.setValue(player.getExperience());
         this.experienceValueLabel = new Label(player.getExperience() + "/" + player.getExperienceToNextLevel(), skin, "default");
 
-        //hudTable.add(levelLabel).padTop(10).colspan(1).padRight(5);
-        //hudTable.row(); // Xuống hàng mới cho XP bar
         hudTable.add(new Label("XP:", skin, "default")).padRight(5).padTop(5); // Label "XP:"
         hudTable.add(experienceBar).width(200).height(20).padRight(10).padTop(5);
         hudTable.add(this.experienceValueLabel).padTop(5).row();
@@ -219,15 +212,7 @@ public class GamePlayScreen implements Screen {
             this.mapPixelWidth = mapWidthInTiles * tilePixelWidth * 3;
             this.mapPixelHeight = mapHeightInTiles * tilePixelHeight * 3;
             Gdx.app.log("GamePlayScreen", "Map dimensions: " + mapPixelWidth + "x" + mapPixelHeight + " pixels");
-        } else {
-            // Đặt giá trị mặc định hoặc xử lý nếu map không tải được
-            this.mapPixelWidth = Gdx.graphics.getWidth(); // Hoặc một giá trị an toàn khác
-            this.mapPixelHeight = Gdx.graphics.getHeight();
-        }
 
-        if (tiledMap != null) {
-            // "Tile Layer 2" là tên layer va chạm của bạn
-            // Nếu bạn đổi tên nó, hãy cập nhật ở đây
             this.collisionLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tile Layer 3");
             if (collisionLayer == null) {
                 Gdx.app.error("GamePlayScreen", "Collision layer 'Tile Layer 2' not found!");
@@ -235,15 +220,56 @@ public class GamePlayScreen implements Screen {
             // Lấy kích thước tile để tính toán tọa độ ô
             this.tilePixelWidth = tiledMap.getProperties().get("tilewidth", Integer.class) * 3;
             this.tilePixelHeight = tiledMap.getProperties().get("tileheight", Integer.class) * 3;
+        } else {
+            // Đặt giá trị mặc định hoặc xử lý nếu map không tải được
+            this.mapPixelWidth = Gdx.graphics.getWidth(); // Hoặc một giá trị an toàn khác
+            this.mapPixelHeight = Gdx.graphics.getHeight();
         }
 
+        // --- **SPAWN ENEMIES TỪ MAP** ---
         this.enemies = new Array<>();
-        // Tạo một enemy mẫu
-        Enemy enemy1 = new Enemy("Wolf", 1, 50, 15, 2, 140, new java.util.ArrayList<>(), 10);
-        enemy1.setPosition(900f, 600f); // Đặt vị trí cho enemy
-        this.enemies.add(enemy1);
+        spawnEnemiesFromMap();
 
         shapeRenderer = new ShapeRenderer();
+    }
+
+    private void spawnEnemiesFromMap() {
+        if (tiledMap == null) {
+            Gdx.app.error("EnemySpawn", "TiledMap is not loaded. Cannot spawn enemies.");
+            return;
+        }
+
+        // Lấy layer object có tên là "enemies"
+        MapLayer objectLayer = tiledMap.getLayers().get("Enemies");
+        if (objectLayer == null) {
+            Gdx.app.log("EnemySpawn", "No 'Enemies' object layer found in the map.");
+            return;
+        }
+
+        MapObjects objects = objectLayer.getObjects();
+        if (objects.getCount() == 0) {
+             Gdx.app.log("EnemySpawn", "The 'Enemies' object layer contains no objects.");
+             return;
+        }
+
+        Gdx.app.log("EnemySpawn", "Found " + objects.getCount() + " enemy spawn points.");
+
+        // Lặp qua từng object (spawn point) trong layer
+        for (MapObject object : objects) {
+            if (object.getProperties().containsKey("x") && object.getProperties().containsKey("y")) {
+                float unitScale = 3f / 1f;
+                float x = object.getProperties().get("x", Float.class) * unitScale;
+                float y = object.getProperties().get("y", Float.class) * unitScale;
+
+                // Tạo một enemy mới tại vị trí này.
+                // Bạn có thể tùy chỉnh các chỉ số của enemy ở đây, hoặc đọc chúng từ properties của object trong Tiled
+                Enemy newEnemy = new Enemy("Wolf", 1, 50, 15, 2, 140, new java.util.ArrayList<>(), 10);
+                newEnemy.setPosition(x, y); // Đặt vị trí cho enemy theo tọa độ thế giới
+                enemies.add(newEnemy);
+
+                Gdx.app.log("EnemySpawn", "Spawned an enemy at world coordinates: (" + x + ", " + y + ")");
+            }
+        }
     }
 
     private boolean isCellBlocked(float x, float y) {
@@ -476,7 +502,7 @@ public class GamePlayScreen implements Screen {
         handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
 
         for (Enemy enemy : enemies) {
-        enemy.update(delta, player); // Hàm này giờ chỉ cập nhật trạng thái
+            enemy.update(delta, player); // Hàm này giờ chỉ cập nhật trạng thái
         }
         handleEnemyMovement(delta); // Hàm này xử lý di chuyển vật lý và va chạm
 
@@ -503,18 +529,6 @@ public class GamePlayScreen implements Screen {
             float minCameraY = cameraHalfHeight;
             float maxCameraY = mapPixelHeight - cameraHalfHeight;
 
-            // === THÊM LOGGING Ở ĐÂY ===
-            if (Gdx.input.isKeyJustPressed(Input.Keys.L)) { // Ví dụ: nhấn L để log, tránh spam console
-                Gdx.app.log("CameraDebug", "------------------------------------");
-                Gdx.app.log("CameraDebug", "Map (Px): " + mapPixelWidth + "x" + mapPixelHeight);
-                Gdx.app.log("CameraDebug", "CamVP (Raw): " + gameCamera.viewportWidth + "x" + gameCamera.viewportHeight + ", Zoom: " + gameCamera.zoom);
-                Gdx.app.log("CameraDebug", "CamVP (Effective): " + effectiveViewportWidth + "x" + effectiveViewportHeight);
-                Gdx.app.log("CameraDebug", "Player Pos: " + player.getX() + ", " + player.getY());
-                Gdx.app.log("CameraDebug", "Cam Target Pos: " + gameCamera.position.x + ", " + gameCamera.position.y);
-                Gdx.app.log("CameraDebug", "Cam X Bounds: [" + minCameraX + ", " + maxCameraX + "]");
-                Gdx.app.log("CameraDebug", "Cam Y Bounds: [" + minCameraY + ", " + maxCameraY + "]");
-            }
-
             // Giới hạn vị trí X của camera
             // Đảm bảo rằng map luôn lớn hơn hoặc bằng kích thước viewport của camera
             if (mapPixelWidth > effectiveViewportWidth) {
@@ -528,16 +542,7 @@ public class GamePlayScreen implements Screen {
             } else {
                 gameCamera.position.y = mapPixelHeight / 2f;
             }
-
-            // === THÊM LOGGING Ở ĐÂY ===
-            if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
-                Gdx.app.log("CameraDebug", "Cam Final Pos: " + gameCamera.position.x + ", " + gameCamera.position.y);
-                Gdx.app.log("CameraDebug", "------------------------------------");
-            }
-           // ==========================
         }
-
-        // gameCamera.update() sẽ được gọi trong render() ngay trước khi vẽ
 
         // --- Cập nhật HUD ---
         // Health
@@ -559,16 +564,6 @@ public class GamePlayScreen implements Screen {
         for (Enemy enemy : enemies) {
             enemy.update(delta, player);
         }
-
-        // Tạm thời mô phỏng việc máu thay đổi để test HUD
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            player.takeDamage(10); // takeDamage
-            if (player.getCurrentHealth() < 0) player.setCurrentHealth(100); // Reset máu ví dụ
-        }
-        // --- Tạm thời: Thêm XP khi nhấn phím E ---
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E) && !inventoryVisible) {
-            player.addExperience(30); // Cộng 30 XP mỗi lần nhấn E
-        }
     }
 
     private void handlePlayerMovement(float delta) {
@@ -580,9 +575,6 @@ public class GamePlayScreen implements Screen {
         // Tạo vector di chuyển để chuẩn hóa nếu di chuyển chéo
         float velocityX = 0;
         float velocityY = 0;
-
-        float oldX = player.x;
-        float oldY = player.y;
 
         if (movingUp) {
             velocityY += moveAmount;
@@ -622,10 +614,8 @@ public class GamePlayScreen implements Screen {
             collisionX = isCellBlocked(pBox.x, pBox.y) || isCellBlocked(pBox.x, pBox.y + pBox.height);
         }
 
-        if (collisionX) {
-            // Nếu va chạm, không cập nhật player.x
-        } else {
-            player.x += velocityX; // Nếu không va chạm, cập nhật vị trí thật
+        if (!collisionX) {
+            player.x += velocityX;
         }
     
         // --- Kiểm tra va chạm và di chuyển theo trục Y ---
@@ -639,9 +629,7 @@ public class GamePlayScreen implements Screen {
             collisionY = isCellBlocked(pBox.x, pBox.y) || isCellBlocked(pBox.x + pBox.width, pBox.y);
         }
 
-        if (collisionY) {
-            // Nếu va chạm, không cập nhật player.y
-        } else {
+        if (!collisionY) {
             player.y += velocityY;
         }
 
@@ -685,7 +673,7 @@ public class GamePlayScreen implements Screen {
             }
 
             if (!collisionX) {
-            enemy.setPosition(enemy.getX() + velocityX, enemy.getY()); // Cập nhật vị trí X thật
+                enemy.setPosition(enemy.getX() + velocityX, enemy.getY()); // Cập nhật vị trí X thật
             }
 
             // --- Kiểm tra va chạm và di chuyển theo trục Y ---
@@ -729,7 +717,7 @@ public class GamePlayScreen implements Screen {
 
     private void handleInput(float delta) {
         // Ví dụ xử lý input chung cho GamePlayScreen, không thuộc GameInputAdapter
-        if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
             toggleInventory();
         }
 
@@ -960,10 +948,6 @@ public class GamePlayScreen implements Screen {
 
         @Override
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            // Xử lý click chuột/chạm màn hình trong thế giới game
-            // Bạn có thể cần unproject tọa độ màn hình sang tọa độ thế giới game
-            // Vector3 worldCoordinates = gameCamera.unproject(new Vector3(screenX, screenY, 0));
-            //Gdx.app.log("GameInputAdapter", "Touched at world coordinates: " + worldCoordinates.x + ", " + worldCoordinates.y);
             return false;
         }
     }
