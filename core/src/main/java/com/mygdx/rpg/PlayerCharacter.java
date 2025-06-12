@@ -144,6 +144,12 @@ public class PlayerCharacter extends Character {
     }
 
     public void update(float delta, boolean movingUp, boolean movingDown, boolean movingLeft, boolean movingRight, boolean attackJustPressed) {
+        if (isDead()) {
+            currentState = PlayerState.DEAD;
+            // (Tùy chọn) Ở đây bạn có thể thêm logic cho animation chết
+            return; // Dừng mọi hành động khác nếu đã chết
+        }
+
         PlayerState previousState = currentState;
         Facing previousFacing = currentFacing;
 

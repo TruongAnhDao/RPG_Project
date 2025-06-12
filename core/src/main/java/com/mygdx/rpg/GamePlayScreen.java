@@ -97,7 +97,9 @@ public class GamePlayScreen implements Screen {
     private Music backgroundMusic;
     private Sound attackSound;
     private Sound enemyattackSound;
+    private Sound playerDeathSound;
 
+    private Label gameOverLabel;
 
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
@@ -140,6 +142,18 @@ public class GamePlayScreen implements Screen {
         } catch (Exception e) {
             Gdx.app.error("GamePlayScreen", "Could not load textures", e);
         }
+
+        Label.LabelStyle gameOverStyle = new Label.LabelStyle(skin.getFont("default-font"), com.badlogic.gdx.graphics.Color.WHITE);
+        gameOverLabel = new Label("GAME OVER", gameOverStyle);
+        gameOverLabel.setFontScale(15.0f); // Phóng to font lên 3 lần
+        gameOverLabel.setVisible(false); // Ban đầu ẩn đi
+
+        // Đặt label vào một table để căn giữa màn hình
+        Table table = new Table();
+        table.setFillParent(true); // table chiếm toàn bộ stage
+        table.add(gameOverLabel).center();
+
+        hudStage.addActor(table); // Thêm table vào stage của HUD
 
         // Tạo các UI elements cho HUD 
         Table hudTable = new Table();
@@ -241,12 +255,8 @@ public class GamePlayScreen implements Screen {
         try {
             // Thay "sounds/attack_swing.wav" bằng đường dẫn file âm thanh của bạn
             attackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/attack_player.mp3"));
-        } catch (Exception e) {
-            Gdx.app.error("SoundLoader", "Could not load attack sound", e);
-        }
-        try {
-            // Thay "sounds/attack_swing.wav" bằng đường dẫn file âm thanh của bạn
             enemyattackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/attack_enemy.wav"));
+            playerDeathSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Die.MP3"));
         } catch (Exception e) {
             Gdx.app.error("SoundLoader", "Could not load attack sound", e);
         }
@@ -524,6 +534,22 @@ public class GamePlayScreen implements Screen {
 
     // Hàm cập nhật logic game (ví dụ)
     private void updateGame(float delta) {
+        if (player.isDead()) {
+            if (playerDeathSound != null) {
+                playerDeathSound.play(2f); // play(volume)
+            }
+            // Hiển thị thông báo Game Over
+            if (!gameOverLabel.isVisible()) {
+                gameOverLabel.setVisible(true);
+            }
+            // Dừng nhạc nền
+            if (backgroundMusic != null && backgroundMusic.isPlaying()) {
+                backgroundMusic.stop();
+            }
+            // Dừng tất cả các cập nhật khác của game
+            return;
+        }
+
         PlayerCharacter.PlayerState playerStateBeforeUpdate = player.getCurrentState();
         // Di chuyển nhân vật, cập nhật AI, xử lý va chạm, v.v.
         player.update(delta, movingUp, movingDown, movingLeft, movingRight, playerAttackRequested);
@@ -929,6 +955,9 @@ public class GamePlayScreen implements Screen {
         }
         if (enemyattackSound != null) {
             enemyattackSound.dispose();
+        }
+        if (playerDeathSound != null) {
+            playerDeathSound.dispose();
         }
     }
 
