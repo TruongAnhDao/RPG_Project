@@ -1,5 +1,8 @@
 package com.mygdx.rpg;
 
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
 //import com.mygdx.rpg.Character;
 
 
@@ -9,18 +12,28 @@ public class Item {
     private String effect;   // Mô tả hiệu ứng, ví dụ: "Heals 50 HP"
     private int quantity;
     private int maxStackSize; 
+    private String texturePath; // Đường dẫn đến texture của item
+    private Texture texture;    // Texture của item
+    private TextureRegion textureRegion; // TextureRegion để vẽ item
 
-    public Item(String name, String type, String effect, int initialQuantity, int maxStackSize) {
+    public Item(String name, String type, String effect, int initialQuantity, int maxStackSize, String texturePath) {
         this.name = name;
         this.type = type;
         this.effect = effect;
-        this.maxStackSize = Math.max(1, maxStackSize); // Đảm bảo maxStackSize ít nhất là 1
-        this.quantity = Math.max(1, Math.min(initialQuantity, this.maxStackSize)); // Đảm bảo quantity hợp lệ
+        this.maxStackSize = Math.max(1, maxStackSize);
+        this.quantity = Math.max(1, Math.min(initialQuantity, this.maxStackSize));
+        this.texturePath = texturePath;
+        loadTexture();
     }
 
-    // Constructor cũ hơn cho item không stack hoặc mặc định quantity = 1, maxStack = 1
-    public Item(String name, String type, String description) {
-        this(name, type, description, 1, 1); // Mặc định không stack, số lượng là 1
+    private void loadTexture() {
+        try {
+            texture = new Texture(texturePath);
+            textureRegion = new TextureRegion(texture);
+        } catch (Exception e) {
+            System.err.println("Error loading texture for item: " + name);
+            e.printStackTrace();
+        }
     }
 
     public String getName() {
@@ -72,6 +85,16 @@ public class Item {
         if (otherItem == null) return false;
         return this.name.equals(otherItem.name) && this.type.equals(otherItem.type);
         // Nếu có ID, nên so sánh ID: return this.id == otherItem.id;
+    }
+
+    public TextureRegion getTextureRegion() {
+        return textureRegion;
+    }
+
+    public void dispose() {
+        if (texture != null) {
+            texture.dispose();
+        }
     }
 
     @Override

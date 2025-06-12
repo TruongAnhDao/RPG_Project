@@ -393,61 +393,61 @@ public class PlayerCharacter extends Character {
 
     public boolean useItem(Item itemToUse) {
         if (inventory.contains(itemToUse)) {
-            boolean consumedOrUsed = false; // Đổi tên biến cho rõ ràng hơn
-            String originalItemName = itemToUse.getName(); // Lưu tên gốc phòng trường hợp item bị xóa
-            // Xử lý hiệu ứng dựa trên loại và tên vật phẩm
+            boolean consumedOrUsed = false;
+            String originalItemName = itemToUse.getName();
+            
             if ("Consumable".equalsIgnoreCase(itemToUse.getType())) {
-                if ("Potion".equalsIgnoreCase(itemToUse.getName())) {
-                    int healAmount = 50; // Ví dụ: Potion hồi 50 HP
+                if ("Heal Potion".equalsIgnoreCase(itemToUse.getName())) {
+                    int healAmount = 50;
                     if (this.hp < this.maxhp) {
                         this.hp += healAmount;
                         if (this.hp > this.maxhp) {
                             this.hp = this.maxhp;
                         }
-                        Gdx.app.log("PlayerCharacter", "Used Potion. Healed " + healAmount + " HP. Current HP: " + this.hp);
+                        Gdx.app.log("PlayerCharacter", "Used Heal Potion. Healed " + healAmount + " HP. Current HP: " + this.hp);
                         consumedOrUsed = true;
                     } else {
-                        Gdx.app.log("PlayerCharacter", "Health is full. Cannot use Potion.");
-                        return false; // Không sử dụng nếu máu đầy
+                        Gdx.app.log("PlayerCharacter", "Health is full. Cannot use Heal Potion.");
+                        return false;
                     }
                 } else if ("Mana Potion".equalsIgnoreCase(itemToUse.getName())) {
-                    int manaRestoreAmount = 30; // Ví dụ
+                    int manaAmount = 30;
                     if (this.currentMana < this.maxMana) {
-                        restoreMana(manaRestoreAmount); // Gọi hàm restoreMana bạn đã tạo
-                        Gdx.app.log("PlayerCharacter", "Used Mana Potion. Restored " + manaRestoreAmount + " MP. Current MP: " + this.currentMana);
+                        this.currentMana += manaAmount;
+                        if (this.currentMana > this.maxMana) {
+                            this.currentMana = this.maxMana;
+                        }
+                        Gdx.app.log("PlayerCharacter", "Used Mana Potion. Restored " + manaAmount + " MP. Current MP: " + this.currentMana);
                         consumedOrUsed = true;
                     } else {
                         Gdx.app.log("PlayerCharacter", "Mana is full. Cannot use Mana Potion.");
-                        return false; // Không sử dụng nếu mana đầy
+                        return false;
                     }
                 }
-                // Thêm các loại "Consumable" khác ở đây
-            } else {
-                Gdx.app.log("PlayerCharacter", itemToUse.getName() + " is not a consumable item.");
-                return false; // Không phải là vật phẩm có thể tiêu thụ trực tiếp qua hành động này
             }
 
             if (consumedOrUsed) {
-                itemToUse.removeQuantity(1); // Giảm số lượng đi 1
+                // Chỉ giảm số lượng đi 1
+                itemToUse.removeQuantity(1);
                 Gdx.app.log("PlayerCharacter", "Used one " + originalItemName + ". Remaining: " + itemToUse.getQuantity());
 
+                // Nếu số lượng về 0 thì xóa item khỏi inventory
                 if (itemToUse.getQuantity() <= 0) {
-                    // Nếu số lượng về 0, xóa item khỏi inventory
                     Iterator<Item> iter = inventory.iterator();
                     while (iter.hasNext()) {
                         Item currentItem = iter.next();
-                        if (currentItem == itemToUse) { // Hoặc equals() nếu bạn đã override
+                        if (currentItem == itemToUse) {
                             iter.remove();
                             Gdx.app.log("PlayerCharacter", "Stack of " + originalItemName + " depleted and removed from inventory.");
                             break;
                         }
                     }
                 }
-                return true; // Vật phẩm đã được sử dụng và tiêu thụ
+                return true;
             }
         }
         Gdx.app.log("PlayerCharacter", "Item " + itemToUse.getName() + " not found in inventory.");
-        return false; // Vật phẩm không có trong hành trang hoặc không được tiêu thụ
+        return false;
     }
 
     public boolean dropItem(Item itemToDrop) {
