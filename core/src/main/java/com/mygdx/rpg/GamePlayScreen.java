@@ -37,6 +37,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.audio.Sound;
 
 public class GamePlayScreen implements Screen {
 
@@ -94,6 +95,8 @@ public class GamePlayScreen implements Screen {
     private ShapeRenderer shapeRenderer;
 
     private Music backgroundMusic;
+    private Sound attackSound;
+    private Sound enemyattackSound;
 
 
     public GamePlayScreen(final RPGGame game) {
@@ -234,6 +237,19 @@ public class GamePlayScreen implements Screen {
         spawnEnemiesFromMap();
 
         shapeRenderer = new ShapeRenderer();
+
+        try {
+            // Thay "sounds/attack_swing.wav" bằng đường dẫn file âm thanh của bạn
+            attackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/attack_player.mp3"));
+        } catch (Exception e) {
+            Gdx.app.error("SoundLoader", "Could not load attack sound", e);
+        }
+        try {
+            // Thay "sounds/attack_swing.wav" bằng đường dẫn file âm thanh của bạn
+            enemyattackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/attack_enemy.wav"));
+        } catch (Exception e) {
+            Gdx.app.error("SoundLoader", "Could not load attack sound", e);
+        }
     }
 
     private void spawnEnemiesFromMap() {
@@ -508,14 +524,32 @@ public class GamePlayScreen implements Screen {
 
     // Hàm cập nhật logic game (ví dụ)
     private void updateGame(float delta) {
+        PlayerCharacter.PlayerState playerStateBeforeUpdate = player.getCurrentState();
         // Di chuyển nhân vật, cập nhật AI, xử lý va chạm, v.v.
         player.update(delta, movingUp, movingDown, movingLeft, movingRight, playerAttackRequested);
         playerAttackRequested = false; // Reset cờ sau khi đã truyền đi, để chỉ tấn công 1 lần mỗi lần nhấn
 
+        PlayerCharacter.PlayerState playerStateAfterUpdate = player.getCurrentState();
+
+        if (playerStateBeforeUpdate != PlayerCharacter.PlayerState.ATTACKING && playerStateAfterUpdate == PlayerCharacter.PlayerState.ATTACKING) {
+        if (attackSound != null) {
+            attackSound.play(0.4f); // play(volume)
+        }
+    }
+
         handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
 
         for (Enemy enemy : enemies) {
+            Enemy.EnemyState enemyStateBeforeUpdate = enemy.getCurrentState();
             enemy.update(delta, player); // Hàm này giờ chỉ cập nhật trạng thái
+            Enemy.EnemyState enemyStateAfterUpdate = enemy.getCurrentState();
+
+            // Nếu trạng thái vừa chuyển sang ATTACKING, phát âm thanh
+            if (enemyStateBeforeUpdate != Enemy.EnemyState.ATTACKING && enemyStateAfterUpdate == Enemy.EnemyState.ATTACKING) {
+                if (enemyattackSound != null) {
+                    enemyattackSound.play(0.4f); // Có thể cho âm lượng nhỏ hơn một chút
+                }
+            }
         }
         handleEnemyMovement(delta); // Hàm này xử lý di chuyển vật lý và va chạm
 
@@ -889,6 +923,12 @@ public class GamePlayScreen implements Screen {
         // Dispose các tài nguyên khác của màn hình game (map, textures nhân vật,...)
         if (backgroundMusic != null) {
             backgroundMusic.dispose();
+        }
+        if (attackSound != null) {
+            attackSound.dispose();
+        }
+        if (enemyattackSound != null) {
+            enemyattackSound.dispose();
         }
     }
 
