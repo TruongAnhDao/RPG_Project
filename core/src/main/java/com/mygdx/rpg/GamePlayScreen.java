@@ -100,6 +100,7 @@ public class GamePlayScreen implements Screen {
     private Sound playerDeathSound;
 
     private Label gameOverLabel;
+    private TextButton backToMenuButton;
 
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
@@ -148,10 +149,30 @@ public class GamePlayScreen implements Screen {
         gameOverLabel.setFontScale(15.0f); // Phóng to font lên 3 lần
         gameOverLabel.setVisible(false); // Ban đầu ẩn đi
 
+        backToMenuButton = new TextButton("Back to Main Menu", skin, "default");
+        backToMenuButton.getLabel().setFontScale(5.5f);
+        backToMenuButton.setVisible(false); // Ban đầu cũng ẩn đi
+
+        backToMenuButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                // Phát âm thanh click nếu có
+                // ...
+
+                // Chuyển về màn hình Main Menu
+                game.setScreen(new MainMenuScreen(game));
+
+                // Quan trọng: Hủy màn hình hiện tại để giải phóng bộ nhớ
+                dispose();
+            }
+        });
+
         // Đặt label vào một table để căn giữa màn hình
         Table table = new Table();
         table.setFillParent(true); // table chiếm toàn bộ stage
-        table.add(gameOverLabel).center();
+        table.add(gameOverLabel).center().padBottom(200);
+        table.row();
+        table.add(backToMenuButton).size(1000f, 200f);
 
         hudStage.addActor(table); // Thêm table vào stage của HUD
 
@@ -534,53 +555,57 @@ public class GamePlayScreen implements Screen {
 
     // Hàm cập nhật logic game (ví dụ)
     private void updateGame(float delta) {
-        if (player.isDead()) {
-            if (playerDeathSound != null) {
-                playerDeathSound.play(2f); // play(volume)
-            }
+        if (player.isDead()) {    
             // Hiển thị thông báo Game Over
             if (!gameOverLabel.isVisible()) {
                 gameOverLabel.setVisible(true);
-            }
-            // Dừng nhạc nền
-            if (backgroundMusic != null && backgroundMusic.isPlaying()) {
-                backgroundMusic.stop();
-            }
-            // Dừng tất cả các cập nhật khác của game
-            return;
-        }
+                backToMenuButton.setVisible(true);
 
-        PlayerCharacter.PlayerState playerStateBeforeUpdate = player.getCurrentState();
-        // Di chuyển nhân vật, cập nhật AI, xử lý va chạm, v.v.
-        player.update(delta, movingUp, movingDown, movingLeft, movingRight, playerAttackRequested);
-        playerAttackRequested = false; // Reset cờ sau khi đã truyền đi, để chỉ tấn công 1 lần mỗi lần nhấn
+                if (backgroundMusic != null && backgroundMusic.isPlaying()) {
+                    backgroundMusic.stop();
+                }
 
-        PlayerCharacter.PlayerState playerStateAfterUpdate = player.getCurrentState();
-
-        if (playerStateBeforeUpdate != PlayerCharacter.PlayerState.ATTACKING && playerStateAfterUpdate == PlayerCharacter.PlayerState.ATTACKING) {
-        if (attackSound != null) {
-            attackSound.play(0.4f); // play(volume)
-        }
-    }
-
-        handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
-
-        for (Enemy enemy : enemies) {
-            Enemy.EnemyState enemyStateBeforeUpdate = enemy.getCurrentState();
-            enemy.update(delta, player); // Hàm này giờ chỉ cập nhật trạng thái
-            Enemy.EnemyState enemyStateAfterUpdate = enemy.getCurrentState();
-
-            // Nếu trạng thái vừa chuyển sang ATTACKING, phát âm thanh
-            if (enemyStateBeforeUpdate != Enemy.EnemyState.ATTACKING && enemyStateAfterUpdate == Enemy.EnemyState.ATTACKING) {
-                if (enemyattackSound != null) {
-                    enemyattackSound.play(0.4f); // Có thể cho âm lượng nhỏ hơn một chút
+                if (playerDeathSound != null) {
+                    playerDeathSound.play(2f); // play(volume)
                 }
             }
-        }
-        handleEnemyMovement(delta); // Hàm này xử lý di chuyển vật lý và va chạm
+        } else {
+            PlayerCharacter.PlayerState playerStateBeforeUpdate = player.getCurrentState();
+            // Di chuyển nhân vật, cập nhật AI, xử lý va chạm, v.v.
+            player.update(delta, movingUp, movingDown, movingLeft, movingRight, playerAttackRequested);
+            playerAttackRequested = false; // Reset cờ sau khi đã truyền đi, để chỉ tấn công 1 lần mỗi lần nhấn
 
-        // --- Gọi hàm xử lý combat ---
-        handleCombat();
+            PlayerCharacter.PlayerState playerStateAfterUpdate = player.getCurrentState();
+
+            if (playerStateBeforeUpdate != PlayerCharacter.PlayerState.ATTACKING && playerStateAfterUpdate == PlayerCharacter.PlayerState.ATTACKING) {
+                if (attackSound != null) {
+                    attackSound.play(0.4f); // play(volume)
+                }
+            }
+
+            handlePlayerMovement(delta); // Gọi hàm xử lý di chuyển
+
+            for (Enemy enemy : enemies) {
+                Enemy.EnemyState enemyStateBeforeUpdate = enemy.getCurrentState();
+                enemy.update(delta, player); // Hàm này giờ chỉ cập nhật trạng thái
+                Enemy.EnemyState enemyStateAfterUpdate = enemy.getCurrentState();
+
+                // Nếu trạng thái vừa chuyển sang ATTACKING, phát âm thanh
+                if (enemyStateBeforeUpdate != Enemy.EnemyState.ATTACKING && enemyStateAfterUpdate == Enemy.EnemyState.ATTACKING) {
+                    if (enemyattackSound != null) {
+                        enemyattackSound.play(0.4f); // Có thể cho âm lượng nhỏ hơn một chút
+                    }
+                }
+            }
+            handleEnemyMovement(delta); // Hàm này xử lý di chuyển vật lý và va chạm
+
+            // --- Gọi hàm xử lý combat ---
+            handleCombat();
+
+            for (Enemy enemy : enemies) {
+                enemy.update(delta, player);
+            }
+        }
 
         // --- CẬP NHẬT VỊ TRÍ CAMERA ĐỂ THEO SAU NGƯỜI CHƠI ---
         if (player != null) { // Đảm bảo player đã được khởi tạo
@@ -633,10 +658,6 @@ public class GamePlayScreen implements Screen {
         experienceBar.setRange(0, player.getExperienceToNextLevel());
         experienceBar.setValue(player.getExperience());
         experienceValueLabel.setText(player.getExperience() + "/" + player.getExperienceToNextLevel());
-
-        for (Enemy enemy : enemies) {
-            enemy.update(delta, player);
-        }
     }
 
     private void handlePlayerMovement(float delta) {
