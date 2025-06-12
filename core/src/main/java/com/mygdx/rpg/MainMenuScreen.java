@@ -30,32 +30,32 @@ public class MainMenuScreen implements Screen {
     private Texture startIconTexture; // Khai báo Texture cho icon Start Game
     private Sound clickSound;
     private Music menuMusic; // Tùy chọn, cho nhạc nền
+    private SettingsWindow settingsWindow;
 
     public MainMenuScreen(final RPGGame game) {
         this.game = game;
         viewport = new ScreenViewport();
         stage = new Stage(viewport, game.batch);
 
-    // --- Tải Âm Thanh ---
-    try {
-        clickSound = Gdx.audio.newSound(Gdx.files.internal("sounds/button_click.ogg"));
-    } catch (Exception e) {
-        Gdx.app.error("MainMenuScreen", "Couldn't load click sound", e);
-        clickSound = null; // Để tránh NullPointerException nếu không tải được
-    }
-
-    // --- (Tùy chọn) Tải và Phát Nhạc Nền ---
-    try {
-        menuMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/menu_background.ogg"));
-        if (menuMusic != null) {
-            menuMusic.setLooping(true); // Cho nhạc lặp lại
-            menuMusic.setVolume(0.5f);  // Điều chỉnh âm lượng (0.0f đến 1.0f)
-            // menuMusic.play(); // Sẽ play trong phương thức show()
+        // --- Tải Âm Thanh ---
+        try {
+            clickSound = Gdx.audio.newSound(Gdx.files.internal("sounds/button_click.ogg"));
+        } catch (Exception e) {
+            Gdx.app.error("MainMenuScreen", "Couldn't load click sound", e);
+            clickSound = null; // Để tránh NullPointerException nếu không tải được
         }
-    } catch (Exception e) {
-        Gdx.app.error("MainMenuScreen", "Couldn't load menu music", e);
-        menuMusic = null;
-    }
+
+        // --- (Tùy chọn) Tải và Phát Nhạc Nền ---
+        try {
+            menuMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/menu_background.ogg"));
+            if (menuMusic != null) {
+                menuMusic.setLooping(true); // Cho nhạc lặp lại  
+                // menuMusic.play(); // Sẽ play trong phương thức show()
+            }
+        } catch (Exception e) {
+            Gdx.app.error("MainMenuScreen", "Couldn't load menu music", e);
+            menuMusic = null;
+        }
 
         // Load background texture
         try {
@@ -74,6 +74,9 @@ public class MainMenuScreen implements Screen {
             Gdx.app.error("MainMenuScreen", "Error loading skin", e);
             skin = new Skin();
         }
+
+        settingsWindow = new SettingsWindow(skin);
+        stage.addActor(settingsWindow);
 
         // Load icons textures
         try {
@@ -115,7 +118,7 @@ public class MainMenuScreen implements Screen {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
                     if (clickSound != null) {
-                    clickSound.play(); // Phát âm thanh click
+                    clickSound.play(SettingsManager.sfxVolume); // Phát âm thanh click
                     }
                     Gdx.app.log("MainMenuScreen", "Start Game ImageButton clicked");
                     game.setScreen(new GamePlayScreen(game)); 
@@ -137,10 +140,10 @@ public class MainMenuScreen implements Screen {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
                     if (clickSound != null) {
-                    clickSound.play();
+                        clickSound.play(SettingsManager.sfxVolume);
                     }
                     Gdx.app.log("MainMenuScreen", "Options ImageButton clicked");
-                    // TODO: Implement Options Screen logic here
+                    settingsWindow.setVisible(true);
                 }
             });
         } else {
@@ -156,7 +159,7 @@ public class MainMenuScreen implements Screen {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
                     if (clickSound != null) {
-                        clickSound.play();
+                        clickSound.play(SettingsManager.sfxVolume);
                     }
                     Gdx.app.log("MainMenuScreen", "Exit ImageButton clicked");
                     Gdx.app.exit(); 
@@ -215,7 +218,7 @@ public class MainMenuScreen implements Screen {
     public void show() {
         Gdx.input.setInputProcessor(stage);
         if (menuMusic != null && !menuMusic.isPlaying()) { // Chỉ phát nếu chưa phát
-        menuMusic.play();
+            menuMusic.play();
         }
     }
 
@@ -223,6 +226,10 @@ public class MainMenuScreen implements Screen {
     public void render(float delta) {
         Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        if (menuMusic != null && menuMusic.isPlaying()) {
+            menuMusic.setVolume(SettingsManager.musicVolume);
+        }
 
         game.batch.enableBlending(); // Đảm bảo bật alpha blending
 

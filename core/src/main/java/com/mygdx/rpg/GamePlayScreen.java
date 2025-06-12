@@ -101,6 +101,7 @@ public class GamePlayScreen implements Screen {
 
     private Label gameOverLabel;
     private TextButton backToMenuButton;
+    private SettingsWindow settingsWindow;
 
     public GamePlayScreen(final RPGGame game) {
         this.game = game;
@@ -122,6 +123,9 @@ public class GamePlayScreen implements Screen {
             Gdx.app.error("GamePlayScreen", "Error loading skin", e);
             skin = new Skin(); // Fallback
         }
+
+        settingsWindow = new SettingsWindow(skin);
+        hudStage.addActor(settingsWindow);
 
         // --- Khởi tạo đối tượng game ---
         player = new PlayerCharacter("Hero"); // Tạo nhân vật
@@ -543,10 +547,9 @@ public class GamePlayScreen implements Screen {
         Gdx.input.setInputProcessor(inputMultiplexer); // Cho phép HUD nhận input
 
         try {
-            // Thay "sounds/gameplay_music.mp3" bằng đường dẫn đến file nhạc của bạn
+            // Thay "sounds/gameplay_music.mp3" bằng đường dẫn đến file nhạc 
             backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/gameplay_music.mp3"));
             backgroundMusic.setLooping(true); // Đặt cho nhạc lặp lại
-            backgroundMusic.setVolume(0.5f);  // Đặt âm lượng (từ 0.0 đến 1.0)
             backgroundMusic.play();           // Bắt đầu phát nhạc
         } catch (Exception e) {
             Gdx.app.error("MusicLoader", "Could not load background music", e);
@@ -555,6 +558,10 @@ public class GamePlayScreen implements Screen {
 
     // Hàm cập nhật logic game (ví dụ)
     private void updateGame(float delta) {
+        if (settingsWindow.isVisible()) {
+            return;
+        }
+
         if (player.isDead()) {    
             // Hiển thị thông báo Game Over
             if (!gameOverLabel.isVisible()) {
@@ -566,7 +573,7 @@ public class GamePlayScreen implements Screen {
                 }
 
                 if (playerDeathSound != null) {
-                    playerDeathSound.play(2f); // play(volume)
+                    playerDeathSound.play(SettingsManager.sfxVolume); // play(volume)
                 }
             }
         } else {
@@ -579,7 +586,7 @@ public class GamePlayScreen implements Screen {
 
             if (playerStateBeforeUpdate != PlayerCharacter.PlayerState.ATTACKING && playerStateAfterUpdate == PlayerCharacter.PlayerState.ATTACKING) {
                 if (attackSound != null) {
-                    attackSound.play(0.4f); // play(volume)
+                    attackSound.play(SettingsManager.sfxVolume); // play(volume)
                 }
             }
 
@@ -593,7 +600,7 @@ public class GamePlayScreen implements Screen {
                 // Nếu trạng thái vừa chuyển sang ATTACKING, phát âm thanh
                 if (enemyStateBeforeUpdate != Enemy.EnemyState.ATTACKING && enemyStateAfterUpdate == Enemy.EnemyState.ATTACKING) {
                     if (enemyattackSound != null) {
-                        enemyattackSound.play(0.4f); // Có thể cho âm lượng nhỏ hơn một chút
+                        enemyattackSound.play(SettingsManager.sfxVolume); // Có thể cho âm lượng nhỏ hơn một chút
                     }
                 }
             }
@@ -828,6 +835,8 @@ public class GamePlayScreen implements Screen {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.2f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        backgroundMusic.setVolume(SettingsManager.musicVolume);  // Đặt âm lượng (từ 0.0 đến 1.0)
+
         // 1. Cập nhật logic game (di chuyển, AI, va chạm,...)
         updateGame(delta);
         handleInput(delta);
@@ -1008,7 +1017,13 @@ public class GamePlayScreen implements Screen {
                 return true; // Input đã được xử lý
             }
 
-            // Di chuyển nhân vật ví dụ
+            if (keycode == Input.Keys.T) {
+                settingsWindow.setVisible(!settingsWindow.isVisible()); // Bật/tắt cửa sổ
+                return true;
+            }
+
+            if (inventoryVisible) return false;
+                // Di chuyển nhân vật ví dụ
             boolean keyProcessed = true; // Mặc định là input đã được xử lý
             switch (keycode) {
                 case Input.Keys.W:
