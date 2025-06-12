@@ -15,63 +15,59 @@ public class Enemy extends Character {
 
     private Rectangle boundingBox;
 
-    public enum EnemyState { IDLE, CHASING, ATTACKING, DEAD, PATROLLING, RETURNING }
+    // --- CÁC BIẾN ANIMATION ---
+    public enum EnemyState { IDLE, RUN, ATTACKING, DEAD }
     private EnemyState currentState;
     private float stateTime;
 
     private Animation<TextureRegion> idleAnimation;
     private Animation<TextureRegion> runAnimation;
     private Animation<TextureRegion> attackAnimation;
-    
-    // --- BIẾN ĐÃ ĐƯỢC THÊM VÀO ---
-    private transient Texture corpseTexture;
-    
-    private transient Texture idleSheet;
+
+    private transient Texture idleSheet; // Dùng `transient` để Gson (nếu có) bỏ qua
     private transient Texture runSheet;
     private transient Texture attackSheet;
+    private transient Texture corpseTexture;
     private transient TextureRegion currentFrame;
 
-    private static final float SIGHT_RANGE = 180f;
-    private static final float ATTACK_RANGE = 50f;
+    private static final float SIGHT_RANGE = 180f; // Khoảng cách nhìn thấy người chơi
+    private static final float ATTACK_RANGE = 50f; // Khoảng cách để tấn công
 
-    public static final int FRAME_WIDTH = 80;
-    public static final int FRAME_HEIGHT = 80;
-
-    private float spawnX, spawnY;
-    private float patrolTargetX, patrolTargetY;
-    private boolean hasSpawnPointBeenSet = false;
-    private static final float PATROL_DISTANCE_X = 120f;
-    private static final float PATROL_DISTANCE_Y = 60f;
-    private int currentPatrolWaypoint = 0;
+    public static final int FRAME_WIDTH = 80; // Chiều rộng frame của enemy
+    public static final int FRAME_HEIGHT = 80; // Chiều cao frame của enemy
 
     public Enemy(String name, int level, int hp, int attack, int defense, int speed, List<Item> dropItems, int expReward) {
         super(name, level, hp, attack, defense, speed);
         this.dropItems = dropItems;
         this.expReward = expReward;
+
+        // --- KHỞI TẠO TRẠNG THÁI BAN ĐẦU ---
+        this.currentState = EnemyState.IDLE;
         this.stateTime = 0f;
         loadAnimations();
 
+        // --- Khởi tạo bounding box ---
         this.boundingBox = new Rectangle();
-        this.boundingBox.width = FRAME_WIDTH * 0.5f;
-        this.boundingBox.height = FRAME_HEIGHT * 0.56f;
-        updateBoundingBox();
+        float boxWidth = FRAME_WIDTH * 0.5f;
+        float boxHeight = FRAME_HEIGHT * 0.56f;
+        this.boundingBox.width = boxWidth;
+        this.boundingBox.height = boxHeight;
+        updateBoundingBox(); // Cập nhật vị trí ban đầu
     }
 
-    @Override
-    public void setPosition(float x, float y) {
-        super.setPosition(x, y);
-        if (!hasSpawnPointBeenSet) {
-            this.spawnX = x;
-            this.spawnY = y;
-            this.patrolTargetX = this.spawnX + PATROL_DISTANCE_X;
-            this.patrolTargetY = this.spawnY;
-            this.hasSpawnPointBeenSet = true;
-            this.currentState = EnemyState.PATROLLING;
-        }
+    public void updateBoundingBox() {
+        float boxX = x - boundingBox.width / 2f;
+        float boxY = y - FRAME_HEIGHT / 2f + 10; // Đặt bounding box ở dưới chân enemy
+        boundingBox.setPosition(boxX, boxY);
+    }
+
+    public Rectangle getBoundingBox() {
+        return boundingBox;
     }
 
     private void loadAnimations() {
         try {
+            // Idle Animation
             idleSheet = new Texture(Gdx.files.internal("enemy/Wolf_anim_idle.png"));
             TextureRegion[][] tmpFramesIdle = TextureRegion.split(idleSheet, FRAME_WIDTH, FRAME_HEIGHT);
             idleAnimation = new Animation<>(0.25f, new Array<>(tmpFramesIdle[0]), Animation.PlayMode.LOOP);
@@ -82,128 +78,105 @@ public class Enemy extends Character {
 
             attackSheet = new Texture(Gdx.files.internal("enemy/Wolf_anim_attack.png"));
             TextureRegion[][] tmpFramesAttack = TextureRegion.split(attackSheet, FRAME_WIDTH, FRAME_HEIGHT);
-            attackAnimation = new Animation<>(0.1f, new Array<>(tmpFramesAttack[0]), Animation.PlayMode.NORMAL);
+            attackAnimation = new Animation<>(0.35f, new Array<>(tmpFramesAttack[0]), Animation.PlayMode.NORMAL); // NORMAL để không lặp lại
 
-            // --- TẢI TEXTURE XÁC CHẾT ---
-            // LƯU Ý: "enemy/wolf_corpse.png" là tên file ví dụ, bạn hãy thay bằng tên file thật của bạn
-            corpseTexture = new Texture(Gdx.files.internal("enemy/Wolf_anim_death.png"));
+            // --- TẢI HÌNH ẢNH CÁI XÁC ---
+            corpseTexture = new Texture(Gdx.files.internal("enemy/Wolf_die.png")); 
 
         } catch (Exception e) {
             Gdx.app.error("Enemy", "Error loading enemy animations", e);
         }
     }
 
-    public boolean isDead() {
-        return this.hp <= 0;
-    }
-
     public void update(float delta, PlayerCharacter player) {
-        if (isDead()) {
-            if (currentState != EnemyState.DEAD) {
-                currentState = EnemyState.DEAD;
-                stateTime = 0;
-            }
+        if (currentState == EnemyState.DEAD) {
             return;
         }
 
-        stateTime += delta;
-        float distanceToPlayer = Vector2.dst(this.x, this.y, player.getX(), player.getY());
-        EnemyState previousState = this.currentState;
+        // Kiểm tra nếu vừa chết
+        if (isDead()) {
+            currentState = EnemyState.DEAD;
+            dropLoot(player);
+            Gdx.app.log("Enemy", name + " has died.");
+            return; // Dừng xử lý
+        }
 
-        if (distanceToPlayer <= SIGHT_RANGE) {
-            if (distanceToPlayer <= ATTACK_RANGE && currentState != EnemyState.ATTACKING) {
+        // --- LOGIC CỦA ENEMY KHI CÒN SỐNG ---
+        stateTime += delta;
+
+        // --- LOGIC AI ĐỂ THAY ĐỔI TRẠNG THÁI ---
+        float distanceToPlayer = Vector2.dst(this.x, this.y, player.getX(), player.getY());
+
+        // Ưu tiên trạng thái tấn công
+        if (currentState == EnemyState.ATTACKING) {
+            // --- MỚI: Kích hoạt hitbox cho Enemy ---
+            if (stateTime >= 0.4f && stateTime <= 1f) { // Căn chỉnh thời gian cho phù hợp với animation của enemy
+                isAttackHitboxActive = true;
+                float hitboxX = this.x;
+                float hitboxY = this.y - 24;
+                float hitboxWidth = 30;
+                float hitboxHeight = 60;
+
+                if (player.getX() > this.x) { // Nếu player ở bên phải
+                    hitboxX += 10;
+                } else { // Nếu player ở bên trái
+                    hitboxX -= (10 + hitboxWidth);
+                }
+                attackHitbox.set(hitboxX, hitboxY, hitboxWidth, hitboxHeight);
+            } else {
+                isAttackHitboxActive = false;
+            }
+
+            if (attackAnimation.isAnimationFinished(stateTime)) {
+                currentState = EnemyState.IDLE;
+                isAttackHitboxActive = false;
+            }
+        } else {
+            isAttackHitboxActive = false; // Đảm bảo hitbox luôn tắt khi không tấn công
+            if (distanceToPlayer <= ATTACK_RANGE) {
                 currentState = EnemyState.ATTACKING;
                 stateTime = 0;
-                hitTargets.clear();
-            } else if (distanceToPlayer > ATTACK_RANGE && currentState != EnemyState.ATTACKING) {
-                currentState = EnemyState.CHASING;
-            }
-        } else {
-            if (previousState == EnemyState.CHASING || previousState == EnemyState.ATTACKING) {
-                currentState = EnemyState.RETURNING;
+                hitTargets.clear(); // --- MỚI: Xóa danh sách mục tiêu cũ
+            } else if (distanceToPlayer <= SIGHT_RANGE) {
+                // Nếu thấy người chơi nhưng chưa đủ gần, đi bộ về phía họ
+                currentState = EnemyState.RUN;
+            } else {
+                // Nếu không thấy người chơi, đứng yên
+                currentState = EnemyState.IDLE;
             }
         }
 
+        if (player.getX() < this.x && currentFrame != null && !currentFrame.isFlipX()) {
+            currentFrame.flip(true, false);
+        } else if (player.getX() > this.x && currentFrame != null && currentFrame.isFlipX()) {
+            currentFrame.flip(true, false);
+        }
+    }
+
+    public TextureRegion getCurrentFrame() {
+        currentFrame = null;
         switch (currentState) {
+            case RUN:
+                if (runAnimation != null) currentFrame = runAnimation.getKeyFrame(stateTime, true);
+                break;
             case ATTACKING:
-                if(attackAnimation != null && attackAnimation.isAnimationFinished(stateTime)) {
-                    currentState = EnemyState.IDLE;
-                }
+                if (attackAnimation != null) currentFrame = attackAnimation.getKeyFrame(stateTime, false);
                 break;
-            case RETURNING:
-                if (Vector2.dst(this.x, this.y, this.spawnX, this.spawnY) < 5f) {
-                    currentState = EnemyState.IDLE;
-                }
+            case IDLE:
+            default:
+                if (idleAnimation != null) currentFrame = idleAnimation.getKeyFrame(stateTime, true);
                 break;
-            case PATROLLING:
-                if (Vector2.dst(this.x, this.y, this.patrolTargetX, this.patrolTargetY) < 5f) {
-                    currentPatrolWaypoint = (currentPatrolWaypoint + 1) % 4;
-                    switch (currentPatrolWaypoint) {
-                        case 0: this.patrolTargetX = spawnX + PATROL_DISTANCE_X; this.patrolTargetY = spawnY; break;
-                        case 1: this.patrolTargetX = spawnX + PATROL_DISTANCE_X; this.patrolTargetY = spawnY - PATROL_DISTANCE_Y; break;
-                        case 2: this.patrolTargetX = spawnX; this.patrolTargetY = spawnY - PATROL_DISTANCE_Y; break;
-                        case 3: this.patrolTargetX = spawnX; this.patrolTargetY = spawnY; break;
-                    }
-                }
-                break;
-            // THAY THẾ BẰNG ĐOẠN NÀY
-case IDLE:
-    // IDLE là trạng thái tạm thời để quyết định hành động tiếp theo.
-    // Kiểm tra lại khoảng cách tới người chơi ngay tại đây.
-    float distToPlayer = Vector2.dst(this.x, this.y, player.getX(), player.getY());
-    
-    if (distToPlayer <= SIGHT_RANGE) {
-        // Nếu người chơi vẫn còn trong tầm nhìn, tiếp tục đuổi theo.
-        currentState = EnemyState.CHASING;
-    } else {
-        // Người chơi đã ở ngoài tầm nhìn. Kiểm tra xem mình có đang ở nhà không.
-        float distToSpawn = Vector2.dst(this.x, this.y, this.spawnX, this.spawnY);
-        
-        if (distToSpawn > 5f) {
-            // Nếu đang ở xa nhà, phải quay về.
-            currentState = EnemyState.RETURNING;
-        } else {
-            // Nếu đã ở nhà, bắt đầu tuần tra.
-            currentState = EnemyState.PATROLLING;
         }
-    }
-    break;
-            case CHASING: case DEAD: break;
-        }
-
-        switch (currentState) {
-            case CHASING: case PATROLLING: case RETURNING:
-                if (runAnimation != null) currentFrame = runAnimation.getKeyFrame(stateTime, true); break;
-            case ATTACKING:
-                if (attackAnimation != null) currentFrame = attackAnimation.getKeyFrame(stateTime, false); break;
-            case DEAD:
-                if (corpseTexture != null) currentFrame = new TextureRegion(corpseTexture); break;
-            case IDLE: default:
-                if (idleAnimation != null) currentFrame = idleAnimation.getKeyFrame(stateTime, true); break;
-        }
-        
-        // Cập nhật logic lật hình ảnh để chỉ lật khi đang di chuyển
-        if(currentState == EnemyState.CHASING || currentState == EnemyState.PATROLLING || currentState == EnemyState.RETURNING) {
-            float moveDirectionX = 0;
-            if(currentState == EnemyState.CHASING) moveDirectionX = player.getX() - this.x;
-            else if(currentState == EnemyState.PATROLLING) moveDirectionX = this.patrolTargetX - this.x;
-            else moveDirectionX = this.spawnX - this.x;
-    
-            if (moveDirectionX < 0 && currentFrame != null && !currentFrame.isFlipX()) {
-                currentFrame.flip(true, false);
-            } else if (moveDirectionX > 0 && currentFrame != null && currentFrame.isFlipX()) {
-                currentFrame.flip(true, false);
-            }
-        }
+        return currentFrame;
     }
 
-    public void updateBoundingBox() {
-        this.boundingBox.setPosition(x - boundingBox.width / 2f, y - FRAME_HEIGHT / 2f + 10);
+    public Texture getCorpseTexture() {
+        return corpseTexture;
     }
 
-    public Rectangle getBoundingBox() { return boundingBox; }
-    public TextureRegion getCurrentFrame() { return currentFrame; }
-    public void attackPlayer(PlayerCharacter player) { attack(player); }
+    public void attackPlayer(PlayerCharacter player) {
+        attack(player);
+    }
 
     public void dropLoot(PlayerCharacter player) {
         System.out.println(name + " dropped loot!");
@@ -215,20 +188,12 @@ case IDLE:
 
     public void dispose() {
         if (idleSheet != null) idleSheet.dispose();
-        if (runSheet != null) runSheet.dispose();
+        if (runSheet != null) runSheet.dispose();     
         if (attackSheet != null) attackSheet.dispose();
-        // --- THÊM DÒNG NÀY ĐỂ GIẢI PHÓNG BỘ NHỚ ---
         if (corpseTexture != null) corpseTexture.dispose();
     }
 
-    public EnemyState getCurrentState(){ return currentState; }
-    public float getSpawnX() { return spawnX; }
-    public float getSpawnY() { return spawnY; }
-    public float getPatrolTargetX() { return patrolTargetX; }
-    public float getPatrolTargetY() { return patrolTargetY; }
-
-    // --- HÀM MÀ BẠN CẦN ĐÂY RỒI ---
-    public Texture getCorpseTexture() {
-        return this.corpseTexture;
+    public EnemyState getCurrentState(){
+        return currentState;
     }
 }

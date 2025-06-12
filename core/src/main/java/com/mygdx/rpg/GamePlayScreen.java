@@ -36,7 +36,6 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.audio.Sound;
 
@@ -686,78 +685,62 @@ public class GamePlayScreen implements Screen {
     }
 
     private void handleEnemyMovement(float delta) {
-    if (enemies == null || enemies.isEmpty()) return;
+        if (enemies == null || enemies.isEmpty()) return;
 
-    for (Enemy enemy : enemies) {
-        if (enemy.getCurrentState() != Enemy.EnemyState.CHASING &&
-            enemy.getCurrentState() != Enemy.EnemyState.RETURNING &&
-            enemy.getCurrentState() != Enemy.EnemyState.PATROLLING) {
-            continue;
-        }
+        for (Enemy enemy : enemies) {
+            // Chỉ xử lý di chuyển nếu enemy đang ở trạng thái WALKING
+            if (enemy.getCurrentState() != Enemy.EnemyState.RUN) {
+                continue; // Bỏ qua enemy này nếu nó không di chuyển
+            }
 
-        float targetX = 0, targetY = 0;
+            // --- Logic di chuyển và va chạm tương tự handlePlayerMovement ---
+            float currentSpeed = enemy.getSpeed();
+            float moveAmount = currentSpeed * delta;
 
-        switch(enemy.getCurrentState()) {
-            case CHASING:
-                targetX = player.getX();
-                targetY = player.getY();
-                break;
-            case RETURNING:
-                targetX = enemy.getSpawnX();
-                targetY = enemy.getSpawnY();
-                break;
-            case PATROLLING:
-                targetX = enemy.getPatrolTargetX();
-                targetY = enemy.getPatrolTargetY();
-                break;
-            default:
-                continue;
-        }
-
-        float currentSpeed = enemy.getSpeed();
-        float moveAmount = currentSpeed * delta;
-        float velocityX = 0;
-        float velocityY = 0;
-
-        if (Vector2.dst(enemy.getX(), enemy.getY(), targetX, targetY) < 3f) {
-            velocityX = 0;
-            velocityY = 0;
-        } else {
-            float angle = (float) Math.atan2(targetY - enemy.getY(), targetX - enemy.getX());
+            // Tính toán vector hướng về phía người chơi
+            float velocityX = 0;
+            float velocityY = 0;
+        
+            float angle = (float) Math.atan2(player.getY() - enemy.getY(), player.getX() - enemy.getX());
             velocityX = (float) Math.cos(angle) * moveAmount;
             velocityY = (float) Math.sin(angle) * moveAmount;
-        }
 
-        Rectangle eBox = enemy.getBoundingBox();
-        eBox.x = enemy.getX() - eBox.width / 2f;
-        eBox.y = enemy.getY() - enemy.getBoundingBox().height / 2f;
+            // Lấy bounding box của enemy
+            Rectangle eBox = enemy.getBoundingBox();
+            eBox.x = enemy.getX() - eBox.width / 2f; // Cập nhật lại vị trí box trước khi kiểm tra
+            eBox.y = enemy.getY() - enemy.getBoundingBox().height / 2f;
 
-        eBox.x += velocityX;
-        boolean collisionX = false;
-        if (velocityX > 0) {
-            collisionX = isCellBlocked(eBox.x + eBox.width, eBox.y) || isCellBlocked(eBox.x + eBox.width, eBox.y + eBox.height);
-        } else if (velocityX < 0) {
-            collisionX = isCellBlocked(eBox.x, eBox.y) || isCellBlocked(eBox.x, eBox.y + eBox.height);
-        }
-        if (!collisionX) {
-            enemy.setPosition(enemy.getX() + velocityX, enemy.getY());
-        }
+            // --- Kiểm tra va chạm và di chuyển theo trục X ---
+            eBox.x += velocityX;
+            boolean collisionX = false;
+            if (velocityX > 0) { // Di chuyển sang phải
+                collisionX = isCellBlocked(eBox.x + eBox.width, eBox.y) || isCellBlocked(eBox.x + eBox.width, eBox.y + eBox.height);
+            } else if (velocityX < 0) { // Di chuyển sang trái
+                collisionX = isCellBlocked(eBox.x, eBox.y) || isCellBlocked(eBox.x, eBox.y + eBox.height);
+            }
 
-        eBox.x = enemy.getBoundingBox().x;
-        eBox.y += velocityY;
-        boolean collisionY = false;
-        if (velocityY > 0) {
-            collisionY = isCellBlocked(eBox.x, eBox.y + eBox.height) || isCellBlocked(eBox.x + eBox.width, eBox.y + eBox.height);
-        } else if (velocityY < 0) {
-            collisionY = isCellBlocked(eBox.x, eBox.y) || isCellBlocked(eBox.x + eBox.width, eBox.y);
-        }
-        if (!collisionY) {
-            enemy.setPosition(enemy.getX(), enemy.getY() + velocityY);
-        }
+            if (!collisionX) {
+                enemy.setPosition(enemy.getX() + velocityX, enemy.getY()); // Cập nhật vị trí X thật
+            }
 
-        enemy.updateBoundingBox();
+            // --- Kiểm tra va chạm và di chuyển theo trục Y ---
+            eBox.x = enemy.getBoundingBox().x; // Reset pBox.x
+            eBox.y += velocityY;
+            boolean collisionY = false;
+            if (velocityY > 0) { // Di chuyển lên
+                collisionY = isCellBlocked(eBox.x, eBox.y + eBox.height) || isCellBlocked(eBox.x + eBox.width, eBox.y + eBox.height);
+            } else if (velocityY < 0) { // Di chuyển xuống
+                collisionY = isCellBlocked(eBox.x, eBox.y) || isCellBlocked(eBox.x + eBox.width, eBox.y);
+            }
+
+            if (!collisionY) {
+                enemy.setPosition(enemy.getX(), enemy.getY() + velocityY); // Cập nhật vị trí Y thật
+            }
+
+            // Cập nhật lại vị trí bounding box cuối cùng
+            enemy.updateBoundingBox();
+        }
     }
-}
 
     private void handleCombat() {
         // 1. Người chơi tấn công Enemy
